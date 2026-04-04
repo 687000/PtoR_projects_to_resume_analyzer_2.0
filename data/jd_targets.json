@@ -55,13 +55,13 @@
           },
           {
             "text": "Designed and delivered file-variable support in Update Workspace Info automation using separate workspace_file_variables modeling and attachment-to-variable mapping via customData.variableId.  ",
-            "included": true,
+            "included": false,
             "source": "generated",
             "order": 2
           },
           {
             "text": "Built and refined add/edit/submit/load flows for automation file variables, including validation, preview/runtime display, invalid DDR handling, and post-execution attachment reconstruction.  ",
-            "included": true,
+            "included": false,
             "source": "generated",
             "order": 3
           }
@@ -86,19 +86,19 @@
           },
           {
             "text": "Defined and implemented a role-state persistence approach using workflow variable custom_data.is_viewer_role to distinguish assigned vs. unassigned template roles during scheduled flow create/edit flows.",
-            "included": true,
+            "included": false,
             "source": "generated",
             "order": 1
           },
           {
             "text": "Used role actNumber to classify assigned and unassigned roles at request-build time, improving consistency between scheduling configuration and downstream UI rendering.",
-            "included": true,
+            "included": false,
             "source": "generated",
             "order": 2
           },
           {
             "text": "Updated request-payload and Vue rendering logic across scheduling flow modules and calendar member-list computation to correctly display assignees, viewers, and deduplicated participants.",
-            "included": true,
+            "included": false,
             "source": "generated",
             "order": 3
           }
@@ -112,6 +112,275 @@
           "react",
           "go",
           "cross-team collaboration",
+          "technical design ownership"
+        ],
+        "tailored_bullets": [
+          {
+            "text": "Delivered Web-side UX enhancements for Form Builder and Form Template Builder, improving image upload interactions and show/hide rule field clarity.",
+            "included": true,
+            "source": "generated",
+            "order": 0
+          },
+          {
+            "text": "Owned technical scope analysis and frontend design breakdown for a PM-scoped UX tuning task, translating approved requirements into a structured Vue implementation.",
+            "included": false,
+            "source": "generated",
+            "order": 1
+          },
+          {
+            "text": "Designed a local-cache-plus-deferred-upload image flow using blob/base64 conversion and thumbnail URLs to provide instant visual feedback during editing.",
+            "included": false,
+            "source": "generated",
+            "order": 2
+          },
+          {
+            "text": "Implemented immediate thumbnail synchronization between form canvas and right-panel editor without waiting for backend resource persistence.",
+            "included": false,
+            "source": "generated",
+            "order": 3
+          }
+        ]
+      },
+      {
+        "project_id": "MNF-248",
+        "project_title": "MNF-248 contactsStore lifecycle cleanup across user selectors",
+        "fit_score": 40,
+        "addressed_requirements": [
+          "platform",
+          "cross-team collaboration",
+          "technical design ownership"
+        ],
+        "tailored_bullets": [
+          {
+            "text": "Resolved cross-UI state interference in a shared Vue/Pinia contactsStore used by multiple contact-selection workflows in Moxo New Flow.",
+            "included": false,
+            "source": "generated",
+            "order": 0
+          },
+          {
+            "text": "Implemented lifecycle cleanup with destroyStore() in shared selector components to prevent stale contact state from leaking across Workspace List and in-workspace flows.",
+            "included": true,
+            "source": "generated",
+            "order": 1
+          },
+          {
+            "text": "Redesigned ContactListFilterSelect.vue to preserve selected-label display through local caching, keeping UI behavior stable after shared store reset.",
+            "included": false,
+            "source": "generated",
+            "order": 2
+          },
+          {
+            "text": "Supported regression-safe frontend delivery across Workspace List filtering, Automation Send Email, DocuSign signer selection, coordinator invitation, and member reassignment flows.",
+            "included": false,
+            "source": "generated",
+            "order": 3
+          }
+        ]
+      },
+      {
+        "project_id": "MV-18289",
+        "project_title": "MV-18289 Shared Workspaces UX Update",
+        "fit_score": 40,
+        "addressed_requirements": [
+          "platform",
+          "cross-team collaboration",
+          "technical design ownership"
+        ],
+        "tailored_bullets": [
+          {
+            "text": "Led web technical analysis and detailed implementation design for a cross-platform Shared Workspaces UX update in contact profiles, aligning behavior across Web, iOS, Android, ISDK, and Biz.",
+            "included": false,
+            "source": "generated",
+            "order": 0
+          },
+          {
+            "text": "Translated PM-defined product changes into a structured Vue/web solution with collapsed-by-default loading, 6-month filtering, empty/error/retry states, and clear state reset behavior.",
+            "included": false,
+            "source": "generated",
+            "order": 1
+          },
+          {
+            "text": "Designed async request control for shared workspace loading, including cache validation, in-flight request reuse, and retry handling to reduce redundant server requests.",
+            "included": false,
+            "source": "generated",
+            "order": 2
+          },
+          {
+            "text": "Defined interface behavior for filterLatest and mapped it through controller and service layers into timestamp-based backend request parameters.",
+            "included": false,
+            "source": "generated",
+            "order": 3
+          }
+        ]
+      },
+      {
+        "project_id": "mv-15561-workspace-participant-invitation",
+        "project_title": "MV-15561 Workspace Participant Invitation",
+        "fit_score": 35,
+        "addressed_requirements": [
+          "cross-team collaboration",
+          "technical design ownership"
+        ],
+        "tailored_bullets": [
+          {
+            "text": "Led technical analysis and web implementation design for a workflow invitation feature covering flow workspace creation and runtime member invitation in a Vue-based web platform.",
+            "included": false,
+            "source": "generated",
+            "order": 0
+          },
+          {
+            "text": "Translated PM requirements into a structured cross-layer solution across entity/model, controller, store, and view layers, with clear behavior and interface definitions.",
+            "included": false,
+            "source": "generated",
+            "order": 1
+          },
+          {
+            "text": "Designed and implemented reusable invitation flows supporting manual participant input, contact-list selection, existing-user matching, new-user recognition, role placeholders, and custom invite messages.",
+            "included": false,
+            "source": "generated",
+            "order": 2
+          },
+          {
+            "text": "Introduced temporary invitee state modeling using pendingInviteUsers to support multi-step workflow creation before final server-side invitation execution.",
+            "included": false,
+            "source": "generated",
+            "order": 3
+          }
+        ]
+      },
+      {
+        "project_id": "MV-17305",
+        "project_title": "MV-17305 Flow Role Usage Experience Tuning",
+        "fit_score": 35,
+        "addressed_requirements": [
+          "cross-team collaboration",
+          "technical design ownership"
+        ],
+        "tailored_bullets": [
+          {
+            "text": "Led T1 technical scope analysis and cross-platform behavior definition for MV-17305, translating PM-defined workflow role requirements into implementable rules across Web, iOS, Android, BIZ Server, REST API, and iSDK. :contentReference[oaicite:15]{index=15}",
+            "included": false,
+            "source": "generated",
+            "order": 0
+          },
+          {
+            "text": "Owned web-side T2 design and implementation for workflow role experience tuning, covering data/entity/model conversion, controller loading, store validation, participant management, and Vue UI updates. :contentReference[oaicite:16]{index=16}",
+            "included": false,
+            "source": "generated",
+            "order": 1
+          },
+          {
+            "text": "Redesigned role handling in a Vue-based workflow system to retain unassigned roles, allow optional role assignment during template-based flow creation, and keep role-state changes consistent across workflow entities and step assignees. ",
+            "included": false,
+            "source": "generated",
+            "order": 2
+          },
+          {
+            "text": "Implemented default assignee support for template roles, including schema extension, validation logic, selector rendering, subtitle display, and autofill behavior when creating flow workspaces from templates. :contentReference[oaicite:18]{index=18}",
+            "included": false,
+            "source": "generated",
+            "order": 3
+          }
+        ]
+      },
+      {
+        "project_id": "MV-18357",
+        "project_title": "MV-18357 Forms Conditional Logic UX Tune",
+        "fit_score": 35,
+        "addressed_requirements": [
+          "cross-team collaboration",
+          "technical design ownership"
+        ],
+        "tailored_bullets": [
+          {
+            "text": "Delivered a Vue-based UX enhancement for a form builder’s conditional-logic workflow, enabling bidirectional navigation between form elements and logic rules to improve traceability and editing efficiency.",
+            "included": false,
+            "source": "generated",
+            "order": 0
+          },
+          {
+            "text": "Translated approved product/UX requirements into detailed web interaction design and implementation across FormBuilder/FormTemplateBuilder, FormCanvas, FormConditionPanel, and FormConditionItem.",
+            "included": false,
+            "source": "generated",
+            "order": 1
+          },
+          {
+            "text": "Designed state-driven UI coordination using shared element IDs and source-aware selection logic to support synchronized panel focus, form scrolling, persistent selection, and temporary highlight behavior.",
+            "included": false,
+            "source": "generated",
+            "order": 2
+          },
+          {
+            "text": "Solved lazy-loading navigation issues by revealing hidden form pages from store-backed form metadata before scrolling to and highlighting target fields or pages.",
+            "included": false,
+            "source": "generated",
+            "order": 3
+          }
+        ]
+      },
+      {
+        "project_id": "mnf-463-self-service-journey-homepage",
+        "project_title": "MNF-463 Self Service Journey & Homepage",
+        "fit_score": 35,
+        "addressed_requirements": [
+          "cross-team collaboration",
+          "technical design ownership"
+        ],
+        "tailored_bullets": [
+          {
+            "text": "Delivered web-side technical design and implementation for MNF-463, a self-service onboarding and homepage optimization project in the New Flow product. :contentReference[oaicite:30]{index=30}",
+            "included": false,
+            "source": "generated",
+            "order": 0
+          },
+          {
+            "text": "Translated PM-defined requirements into structured web behavior covering DNS registration animation, onboarding redirect/tour logic, Get Started tiles, recent flows/templates, and terminology updates. :contentReference[oaicite:31]{index=31}",
+            "included": false,
+            "source": "generated",
+            "order": 1
+          },
+          {
+            "text": "Defined and implemented layered behavior across view, store/model, and controller, including state enums, fetch/reset actions, derived flags, compact list rendering, and workflow/template retrieval integration. :contentReference[oaicite:32]{index=32}",
+            "included": false,
+            "source": "generated",
+            "order": 2
+          },
+          {
+            "text": "Implemented detailed interaction logic for first-time homepage onboarding, including route-based tour triggering, menu highlight sequencing, AI-entry routing, loading skeletons, and retry/error handling. :contentReference[oaicite:33]{index=33} :contentReference[oaicite:34]{index=34}",
+            "included": false,
+            "source": "generated",
+            "order": 3
+          }
+        ]
+      }
+    ],
+    "raw_jd_text": "Web Developer\nApply\nlocations\nUniversity of New Hampshire – Main Campus\ntime type\nFull time\nposted on\nPosted 4 Days Ago\njob requisition id\nJR7231\n\n23%\nResume Match\n5 of 22 keywords\nSimplify\nSimplify\nV1\nV2\nThe Web Developer will work with a team to develop, maintain and enhance database-driven websites, applications and web elements for the public-facing websites of the University System of New Hampshire and its institutions with a strong focus toward user experience, digital accessibility, SEO principles and client specifications. The Web Developer provides technical leadership to support USNH strategic initiatives.  \n\nIn this role, you will develop and extend the Drupal content management system framework as well as develop software using PHP, JavaScript, jQuery, HTML, CSS, SQL, and/or other languages. Experience in Web Services (SOAP, REST) and source code control (GitLab) is required. \n\nYou will also assist in establishing and maintaining a development environment that uses industry best practices for change management. This includes effective use of code repositories, properly leveraging development-test-production environments, and adherence to security protocols and auditable programming standards.\n\nDuties/Responsibilities\n\nSoftware Development (80%)\n\nDevelop websites and other software applications to meet client needs within the scope of the USNH institutions’ web style guides and policies. This includes designing, writing, and implementing new application software and enhancements to existing software; as well as designing application system solutions that employ current and emerging technologies.\n\nBuild standards-compliant websites using content management systems like Drupal and WordPress, and web technologies like PHP, HTML, React, and CSS.\n\nWork with complex data structures within relational databases.\n\nCollaborate across teams to integrate AI capabilities into workflows and align AI initiatives with organizational goals.\n\nLeverage AI to improve code quality and automate coding tasks. This includes testing, debugging, and improving efficiency by analyzing code for vulnerabilities and suggesting improvements.\n\nTroubleshoot issues as required.\n\nMaintain technical skills to ensure currency with new and emerging web technologies.\n\nProvide documentation and technical support for supported applications.\n\nCoordinate the tracking, implementation, and testing of software.\n\nOversee the maintenance schedule for software applications to ensure they stay up-to-date with the latest stable versions and security releases.\n\nManage document libraries, Git and other information warehouses.\n\nClient Services (15%)\n\nWorking closely with other project leaders, this position provides technical leadership by estimating project hours, developing functional and technical specifications, establishing timelines for software projects requested by our customers, and ensuring timely delivery of properly functioning application software.\n\nOther (5%)\n\nOther duties as assigned. May include training, supervision, professional development, and research.\n\nMinimum Acceptable Education & Experience:\nBachelor’s degree and six years of experience in information technology field, Master’s and four years, or combination of education and experience equal to ten years.\n\nRequired Knowledge, Skills & Abilities:\nAbility to be flexible, adapt and promote organizational core beliefs and values.\n\nDemonstrated experience researching, analyzing, and implementing strategies to leverage technology to improve the user experience and/or develop new capabilities to meet emerging opportunities or challenges.\n\nExperience in database-driven web applications, HTML5, CSS, JavaScript, React, PHP, Drupal or WordPress content management systems.\n\nWorking knowledge of at least one SQL-based database.\n\nKnowledge of version control systems such as Git or SVN.\n\nStrong organizational skills with effective oral and written communication skills.\n\nPreferred Qualifications:\n\nRelational database management experience.\n\nLeadership experience.\n\nExperience with project management tools and methodologies.\n\nExperience working in higher education.\n\nCustomer service experience.\n\nApplicant Instructions: \n\nApplicants should be prepared to upload the following documents when applying online within the My Experience: Resume/CV section of the application: (Maximum of 5 Documents)\n\nResume/CV\n\nCover Letter\n\nContact Information for 3 Professional References\n\nApplications that are missing any of the required items may not move forward for consideration. Additional uploaded documents not requested in the position announcement will not be reviewed.\n\nThe University of New Hampshire is an R1 Carnegie classification research institution providing comprehensive, high-quality undergraduate and graduate programs of distinction. UNH is located in Durham on a 188-acre campus, 60 miles north of Boston and 8 miles from the Atlantic coast and is convenient to New Hampshire’s lakes and mountains. There is a student enrollment of 13,000 students, with a full-time faculty of over 600, offering 90 undergraduate and more than 70 graduate programs. The University actively promotes a dynamic learning environment in which qualified individuals of differing perspectives, life experiences, and cultural backgrounds pursue academic goals with mutual respect and shared inquiry.\n\nEEO Statement\n\nThe University System of New Hampshire is an Equal Opportunity/Equal Access employer. The University System is committed to creating an environment that values and supports diversity and inclusiveness across our campus communities and encourages applications from qualified individuals who will help us achieve this mission. The University System prohibits discrimination on the basis of race, color, religion, sex, age, national origin, sexual orientation, gender identity or expression, disability, genetic information, veteran status, or marital status.\n\nCompensation Pay Range:\n\n$69,560.00 - $124,580.00\nThe pay range for this position is listed above. Actual offer will be based on skills, qualifications, experience, and internal equity, in addition to relevant business considerations. More information on benefits can be found here: USNH Employee Benefits | Human Resources",
+    "source_metadata": {},
+    "id": "05477418-bb9b-4618-a5e6-9473d8dd32f6",
+    "created_at": "2026-04-04T17:11:10.353614+00:00"
+  },
+  {
+    "role_title": "Acknowledgement Page",
+    "company": null,
+    "extracted_requirements": {
+      "tech_stack": [
+        "go"
+      ],
+      "collaboration": [],
+      "domain": [
+        "web_app"
+      ],
+      "seniority": [
+        "staff"
+      ]
+    },
+    "matched_projects": [
+      {
+        "project_id": "mv-18768-form-enhancement-p4-ux-tuning",
+        "project_title": "MV-18768 Form Enhancement P4 - UX Tuning",
+        "fit_score": 65,
+        "addressed_requirements": [
+          "go",
           "technical design ownership"
         ],
         "tailored_bullets": [
@@ -142,36 +411,34 @@
         ]
       },
       {
-        "project_id": "MNF-248",
-        "project_title": "MNF-248 contactsStore lifecycle cleanup across user selectors",
-        "fit_score": 40,
+        "project_id": "mv-15561-workspace-participant-invitation",
+        "project_title": "MV-15561 Workspace Participant Invitation",
+        "fit_score": 25,
         "addressed_requirements": [
-          "platform",
-          "cross-team collaboration",
           "technical design ownership"
         ],
         "tailored_bullets": [
           {
-            "text": "Resolved cross-UI state interference in a shared Vue/Pinia contactsStore used by multiple contact-selection workflows in Moxo New Flow.",
-            "included": true,
+            "text": "Led technical analysis and web implementation design for a workflow invitation feature covering flow workspace creation and runtime member invitation in a Vue-based web platform.",
+            "included": false,
             "source": "generated",
             "order": 0
           },
           {
-            "text": "Implemented lifecycle cleanup with destroyStore() in shared selector components to prevent stale contact state from leaking across Workspace List and in-workspace flows.",
-            "included": true,
+            "text": "Translated PM requirements into a structured cross-layer solution across entity/model, controller, store, and view layers, with clear behavior and interface definitions.",
+            "included": false,
             "source": "generated",
             "order": 1
           },
           {
-            "text": "Redesigned ContactListFilterSelect.vue to preserve selected-label display through local caching, keeping UI behavior stable after shared store reset.",
-            "included": true,
+            "text": "Designed and implemented reusable invitation flows supporting manual participant input, contact-list selection, existing-user matching, new-user recognition, role placeholders, and custom invite messages.",
+            "included": false,
             "source": "generated",
             "order": 2
           },
           {
-            "text": "Supported regression-safe frontend delivery across Workspace List filtering, Automation Send Email, DocuSign signer selection, coordinator invitation, and member reassignment flows.",
-            "included": true,
+            "text": "Introduced temporary invitee state modeling using pendingInviteUsers to support multi-step workflow creation before final server-side invitation execution.",
+            "included": false,
             "source": "generated",
             "order": 3
           }
@@ -179,71 +446,101 @@
       },
       {
         "project_id": "MV-17305",
-        "project_title": "Untitled Project",
-        "fit_score": 40,
+        "project_title": "MV-17305 Flow Role Usage Experience Tuning",
+        "fit_score": 25,
         "addressed_requirements": [
-          "platform",
-          "cross-team collaboration",
           "technical design ownership"
         ],
         "tailored_bullets": [
           {
-            "text": "Implemented my T1 work included technical scope analysis, skill/platform assessment, implementation estimation, and defining behavior/interface expectations across platforms and layers",
-            "included": true,
+            "text": "Led T1 technical scope analysis and cross-platform behavior definition for MV-17305, translating PM-defined workflow role requirements into implementable rules across Web, iOS, Android, BIZ Server, REST API, and iSDK. :contentReference[oaicite:15]{index=15}",
+            "included": false,
             "source": "generated",
             "order": 0
           },
           {
-            "text": "Implemented i translated business scenarios into technical rules, exception handling, and engineering-ready definitions",
-            "included": true,
+            "text": "Owned web-side T2 design and implementation for workflow role experience tuning, covering data/entity/model conversion, controller loading, store validation, participant management, and Vue UI updates. :contentReference[oaicite:16]{index=16}",
+            "included": false,
             "source": "generated",
             "order": 1
           },
           {
-            "text": "Implemented :contentReference[oaicite:33]{index=33}",
-            "included": true,
+            "text": "Redesigned role handling in a Vue-based workflow system to retain unassigned roles, allow optional role assignment during template-based flow creation, and keep role-state changes consistent across workflow entities and step assignees. ",
+            "included": false,
             "source": "generated",
             "order": 2
           },
           {
-            "text": "Implemented my T2 work focused on web development and detailed implementation design, including role data type updates, workflow role conversion, controller/template default-user loading, store validation, participant form behavior, selector updates, and UI rendering for default assignees and unassigned roles",
-            "included": true,
+            "text": "Implemented default assignee support for template roles, including schema extension, validation logic, selector rendering, subtitle display, and autofill behavior when creating flow workspaces from templates. :contentReference[oaicite:18]{index=18}",
+            "included": false,
             "source": "generated",
             "order": 3
           }
         ]
       },
       {
-        "project_id": "MV-18289",
-        "project_title": "MV-18289 Shared Workspaces UX Update",
-        "fit_score": 40,
+        "project_id": "MNF-248",
+        "project_title": "MNF-248 contactsStore lifecycle cleanup across user selectors",
+        "fit_score": 25,
         "addressed_requirements": [
-          "platform",
-          "cross-team collaboration",
           "technical design ownership"
         ],
         "tailored_bullets": [
           {
-            "text": "Led web technical analysis and detailed implementation design for a cross-platform Shared Workspaces UX update in contact profiles, aligning behavior across Web, iOS, Android, ISDK, and Biz.",
-            "included": true,
+            "text": "Resolved cross-UI state interference in a shared Vue/Pinia contactsStore used by multiple contact-selection workflows in Moxo New Flow.",
+            "included": false,
             "source": "generated",
             "order": 0
           },
           {
-            "text": "Translated PM-defined product changes into a structured Vue/web solution with collapsed-by-default loading, 6-month filtering, empty/error/retry states, and clear state reset behavior.",
-            "included": true,
+            "text": "Implemented lifecycle cleanup with destroyStore() in shared selector components to prevent stale contact state from leaking across Workspace List and in-workspace flows.",
+            "included": false,
             "source": "generated",
             "order": 1
           },
           {
-            "text": "Designed async request control for shared workspace loading, including cache validation, in-flight request reuse, and retry handling to reduce redundant server requests.",
-            "included": true,
+            "text": "Redesigned ContactListFilterSelect.vue to preserve selected-label display through local caching, keeping UI behavior stable after shared store reset.",
+            "included": false,
             "source": "generated",
             "order": 2
           },
           {
-            "text": "Defined interface behavior for filterLatest and mapped it through controller and service layers into timestamp-based backend request parameters.",
-            "included": true,
+            "text": "Supported regression-safe frontend delivery across Workspace List filtering, Automation Send Email, DocuSign signer selection, coordinator invitation, and member reassignment flows.",
+            "included": false,
+            "source": "generated",
+            "order": 3
+          }
+        ]
+      },
+      {
+        "project_id": "workflow-file-variable-update-workspace-info-automation",
+        "project_title": "Workflow File Variable & Update Workspace Info Automation",
+        "fit_score": 25,
+        "addressed_requirements": [
+          "technical design ownership"
+        ],
+        "tailored_bullets": [
+          {
+            "text": "Led T1 technical scoping and web/platform interface definition for file-type workspace variables and their use in Update Workspace Info automation within a workflow platform.  ",
+            "included": false,
+            "source": "generated",
+            "order": 0
+          },
+          {
+            "text": "Implemented web-side support for FILE workspace variables across template builder, flow execution, and runtime workspace editing, including temp-board upload flow, payload persistence, and DDR exposure.  ",
+            "included": false,
+            "source": "generated",
+            "order": 1
+          },
+          {
+            "text": "Designed and delivered file-variable support in Update Workspace Info automation using separate workspace_file_variables modeling and attachment-to-variable mapping via customData.variableId.  ",
+            "included": false,
+            "source": "generated",
+            "order": 2
+          },
+          {
+            "text": "Built and refined add/edit/submit/load flows for automation file variables, including validation, preview/runtime display, invalid DDR handling, and post-execution attachment reconstruction.  ",
+            "included": false,
             "source": "generated",
             "order": 3
           }
@@ -252,33 +549,32 @@
       {
         "project_id": "MV-18357",
         "project_title": "MV-18357 Forms Conditional Logic UX Tune",
-        "fit_score": 35,
+        "fit_score": 25,
         "addressed_requirements": [
-          "cross-team collaboration",
           "technical design ownership"
         ],
         "tailored_bullets": [
           {
             "text": "Delivered a Vue-based UX enhancement for a form builder’s conditional-logic workflow, enabling bidirectional navigation between form elements and logic rules to improve traceability and editing efficiency.",
-            "included": true,
+            "included": false,
             "source": "generated",
             "order": 0
           },
           {
             "text": "Translated approved product/UX requirements into detailed web interaction design and implementation across FormBuilder/FormTemplateBuilder, FormCanvas, FormConditionPanel, and FormConditionItem.",
-            "included": true,
+            "included": false,
             "source": "generated",
             "order": 1
           },
           {
             "text": "Designed state-driven UI coordination using shared element IDs and source-aware selection logic to support synchronized panel focus, form scrolling, persistent selection, and temporary highlight behavior.",
-            "included": true,
+            "included": false,
             "source": "generated",
             "order": 2
           },
           {
             "text": "Solved lazy-loading navigation issues by revealing hidden form pages from store-backed form metadata before scrolling to and highlighting target fields or pages.",
-            "included": true,
+            "included": false,
             "source": "generated",
             "order": 3
           }
@@ -287,42 +583,109 @@
       {
         "project_id": "mnf-463-self-service-journey-homepage",
         "project_title": "MNF-463 Self Service Journey & Homepage",
-        "fit_score": 35,
+        "fit_score": 25,
         "addressed_requirements": [
-          "cross-team collaboration",
           "technical design ownership"
         ],
         "tailored_bullets": [
           {
             "text": "Delivered web-side technical design and implementation for MNF-463, a self-service onboarding and homepage optimization project in the New Flow product. :contentReference[oaicite:30]{index=30}",
-            "included": true,
+            "included": false,
             "source": "generated",
             "order": 0
           },
           {
             "text": "Translated PM-defined requirements into structured web behavior covering DNS registration animation, onboarding redirect/tour logic, Get Started tiles, recent flows/templates, and terminology updates. :contentReference[oaicite:31]{index=31}",
-            "included": true,
+            "included": false,
             "source": "generated",
             "order": 1
           },
           {
             "text": "Defined and implemented layered behavior across view, store/model, and controller, including state enums, fetch/reset actions, derived flags, compact list rendering, and workflow/template retrieval integration. :contentReference[oaicite:32]{index=32}",
-            "included": true,
+            "included": false,
             "source": "generated",
             "order": 2
           },
           {
             "text": "Implemented detailed interaction logic for first-time homepage onboarding, including route-based tour triggering, menu highlight sequencing, AI-entry routing, loading skeletons, and retry/error handling. :contentReference[oaicite:33]{index=33} :contentReference[oaicite:34]{index=34}",
-            "included": true,
+            "included": false,
+            "source": "generated",
+            "order": 3
+          }
+        ]
+      },
+      {
+        "project_id": "MV-18289",
+        "project_title": "MV-18289 Shared Workspaces UX Update",
+        "fit_score": 25,
+        "addressed_requirements": [
+          "technical design ownership"
+        ],
+        "tailored_bullets": [
+          {
+            "text": "Led web technical analysis and detailed implementation design for a cross-platform Shared Workspaces UX update in contact profiles, aligning behavior across Web, iOS, Android, ISDK, and Biz.",
+            "included": false,
+            "source": "generated",
+            "order": 0
+          },
+          {
+            "text": "Translated PM-defined product changes into a structured Vue/web solution with collapsed-by-default loading, 6-month filtering, empty/error/retry states, and clear state reset behavior.",
+            "included": false,
+            "source": "generated",
+            "order": 1
+          },
+          {
+            "text": "Designed async request control for shared workspace loading, including cache validation, in-flight request reuse, and retry handling to reduce redundant server requests.",
+            "included": false,
+            "source": "generated",
+            "order": 2
+          },
+          {
+            "text": "Defined interface behavior for filterLatest and mapped it through controller and service layers into timestamp-based backend request parameters.",
+            "included": false,
+            "source": "generated",
+            "order": 3
+          }
+        ]
+      },
+      {
+        "project_id": "mv-17930-scheduled-flow-preview-flow-member-list-tuning",
+        "project_title": "MV-17930 Scheduled Flow Preview Flow Member List Tuning",
+        "fit_score": 25,
+        "addressed_requirements": [
+          "technical design ownership"
+        ],
+        "tailored_bullets": [
+          {
+            "text": "Led web-side technical analysis and implementation for MV-17930, a workflow/calendar feature that corrected assignee and viewer display in scheduled flow preview and calendar detail views.",
+            "included": false,
+            "source": "generated",
+            "order": 0
+          },
+          {
+            "text": "Defined and implemented a role-state persistence approach using workflow variable custom_data.is_viewer_role to distinguish assigned vs. unassigned template roles during scheduled flow create/edit flows.",
+            "included": false,
+            "source": "generated",
+            "order": 1
+          },
+          {
+            "text": "Used role actNumber to classify assigned and unassigned roles at request-build time, improving consistency between scheduling configuration and downstream UI rendering.",
+            "included": false,
+            "source": "generated",
+            "order": 2
+          },
+          {
+            "text": "Updated request-payload and Vue rendering logic across scheduling flow modules and calendar member-list computation to correctly display assignees, viewers, and deduplicated participants.",
+            "included": false,
             "source": "generated",
             "order": 3
           }
         ]
       }
     ],
-    "raw_jd_text": "Web Developer\nApply\nlocations\nUniversity of New Hampshire – Main Campus\ntime type\nFull time\nposted on\nPosted 4 Days Ago\njob requisition id\nJR7231\n\n23%\nResume Match\n5 of 22 keywords\nSimplify\nSimplify\nV1\nV2\nThe Web Developer will work with a team to develop, maintain and enhance database-driven websites, applications and web elements for the public-facing websites of the University System of New Hampshire and its institutions with a strong focus toward user experience, digital accessibility, SEO principles and client specifications. The Web Developer provides technical leadership to support USNH strategic initiatives.  \n\nIn this role, you will develop and extend the Drupal content management system framework as well as develop software using PHP, JavaScript, jQuery, HTML, CSS, SQL, and/or other languages. Experience in Web Services (SOAP, REST) and source code control (GitLab) is required. \n\nYou will also assist in establishing and maintaining a development environment that uses industry best practices for change management. This includes effective use of code repositories, properly leveraging development-test-production environments, and adherence to security protocols and auditable programming standards.\n\nDuties/Responsibilities\n\nSoftware Development (80%)\n\nDevelop websites and other software applications to meet client needs within the scope of the USNH institutions’ web style guides and policies. This includes designing, writing, and implementing new application software and enhancements to existing software; as well as designing application system solutions that employ current and emerging technologies.\n\nBuild standards-compliant websites using content management systems like Drupal and WordPress, and web technologies like PHP, HTML, React, and CSS.\n\nWork with complex data structures within relational databases.\n\nCollaborate across teams to integrate AI capabilities into workflows and align AI initiatives with organizational goals.\n\nLeverage AI to improve code quality and automate coding tasks. This includes testing, debugging, and improving efficiency by analyzing code for vulnerabilities and suggesting improvements.\n\nTroubleshoot issues as required.\n\nMaintain technical skills to ensure currency with new and emerging web technologies.\n\nProvide documentation and technical support for supported applications.\n\nCoordinate the tracking, implementation, and testing of software.\n\nOversee the maintenance schedule for software applications to ensure they stay up-to-date with the latest stable versions and security releases.\n\nManage document libraries, Git and other information warehouses.\n\nClient Services (15%)\n\nWorking closely with other project leaders, this position provides technical leadership by estimating project hours, developing functional and technical specifications, establishing timelines for software projects requested by our customers, and ensuring timely delivery of properly functioning application software.\n\nOther (5%)\n\nOther duties as assigned. May include training, supervision, professional development, and research.\n\nMinimum Acceptable Education & Experience:\nBachelor’s degree and six years of experience in information technology field, Master’s and four years, or combination of education and experience equal to ten years.\n\nRequired Knowledge, Skills & Abilities:\nAbility to be flexible, adapt and promote organizational core beliefs and values.\n\nDemonstrated experience researching, analyzing, and implementing strategies to leverage technology to improve the user experience and/or develop new capabilities to meet emerging opportunities or challenges.\n\nExperience in database-driven web applications, HTML5, CSS, JavaScript, React, PHP, Drupal or WordPress content management systems.\n\nWorking knowledge of at least one SQL-based database.\n\nKnowledge of version control systems such as Git or SVN.\n\nStrong organizational skills with effective oral and written communication skills.\n\nPreferred Qualifications:\n\nRelational database management experience.\n\nLeadership experience.\n\nExperience with project management tools and methodologies.\n\nExperience working in higher education.\n\nCustomer service experience.\n\nApplicant Instructions: \n\nApplicants should be prepared to upload the following documents when applying online within the My Experience: Resume/CV section of the application: (Maximum of 5 Documents)\n\nResume/CV\n\nCover Letter\n\nContact Information for 3 Professional References\n\nApplications that are missing any of the required items may not move forward for consideration. Additional uploaded documents not requested in the position announcement will not be reviewed.\n\nThe University of New Hampshire is an R1 Carnegie classification research institution providing comprehensive, high-quality undergraduate and graduate programs of distinction. UNH is located in Durham on a 188-acre campus, 60 miles north of Boston and 8 miles from the Atlantic coast and is convenient to New Hampshire’s lakes and mountains. There is a student enrollment of 13,000 students, with a full-time faculty of over 600, offering 90 undergraduate and more than 70 graduate programs. The University actively promotes a dynamic learning environment in which qualified individuals of differing perspectives, life experiences, and cultural backgrounds pursue academic goals with mutual respect and shared inquiry.\n\nEEO Statement\n\nThe University System of New Hampshire is an Equal Opportunity/Equal Access employer. The University System is committed to creating an environment that values and supports diversity and inclusiveness across our campus communities and encourages applications from qualified individuals who will help us achieve this mission. The University System prohibits discrimination on the basis of race, color, religion, sex, age, national origin, sexual orientation, gender identity or expression, disability, genetic information, veteran status, or marital status.\n\nCompensation Pay Range:\n\n$69,560.00 - $124,580.00\nThe pay range for this position is listed above. Actual offer will be based on skills, qualifications, experience, and internal equity, in addition to relevant business considerations. More information on benefits can be found here: USNH Employee Benefits | Human Resources",
+    "raw_jd_text": "Acknowledgement Page\n \nPLEASE READ AND ACKNOWLEDGE THE FOLLOWING BEFORE BEGINNING YOUR APPLICATION\nImportant Notes: You must provide information about your educational background and work experience including job titles, dates of employment (month/year), and specific job duties on your application. ‘Acting Up’ cannot be considered for current City employees. Please attach all applicable transcripts, diplomas, licenses, and/or certificates as outlined on the job posting for the position you are applying for. The initial evaluation will be based on information provided and documents submitted with the application. Applications must be submitted by the individual applicant. No second party applicants will be accepted.\n\nEducation & Employment Verification: If you are selected, we may conduct an education and/or employment verification as it relates to the qualifications for the position. If you received your degree internationally, you will be required to provide a Foreign Credential Evaluation. If the City of Chicago cannot verify the needed information, any conditional employment offer will be rescinded.\n\nCOMMITMENT TO DIVERSITY:  To further our commitment to hiring applicants with diverse experience the City of Chicago has adopted the following ordinances 2-74-020 and 2-74-075.  The ordinances provide a preference to applicants who meet minimum qualifications to be referred to departments for consideration.\nTo honor the commitment of our veterans, the City of Chicago has amended city ordinance 2-74-020 to bolster the hiring preference for individuals who have served in the United States Armed Forces and were discharged or released therefrom under Honorable Discharge or General Discharge (Under Honorable Conditions).  The City of Chicago further recognizes an individual who has completed the term of their initial contract as a Reservist or member of the National Guard and is actively serving in good standing. Veterans who claim Veteran’s preference must submit the following at the time of onboarding:  DD214, Certificate of Release or Discharge from Active Duty that must show the Veterans’ character of service upon discharge.  If an induvial is still in the Reserve or National Guard, a letter from the Commanding Officer, Unit Representative, or Personnel Staff Officer (S-1) stating the induvial is serving in “good standing” and has completed their first term of their initial contract.  \nTo promote the social and economic well-being of residents in socio-economically disadvantaged areas which are disproportionately impacted by low household income, high poverty and high levels of unemployment, the City of Chicago has amended city ordinance 2-74-075 to include a hiring preference for residents of socioeconomically disadvantaged areas. Under section 2-92-390 of the municipal code, the Commissioner of Planning and Development is authorized to designate socioeconomically disadvantaged areas.  These designations will be used to provide residents from within these areas a hiring preference.  Unless otherwise prohibited by the hiring plan, collective bargaining agreement or federal state or local law and subject to the availability of eligible applicants, each referral list for a covered position shall include 25% of eligible applicants who are residents of socioeconomically disadvantaged areas.\n\nResidency Requirement: All employees of the City of Chicago must be actual residents of the City upon their start date as outlined in 2-152-050 of the City of Chicago Municipal Code. Proof of residency will be required.\n\nReasonable Accommodation: If you would like to request a reasonable accommodation due to disability or pregnancy in order to participate in the application process, please contact the City of Chicago, Department of Human Resources, at 312-744-4976 or disabilityaccommodations@cityofchicago.org. Please be prepared to provide information in support of your reasonable accommodation request.\n\n\nALL REFERENCES TO POLITICAL SPONSORSHIP OR RECOMMENDATION MUST BE OMITTED FROM ALL APPLICATION MATERIALS SUBMITTED FOR CITY EMPLOYMENT.",
     "source_metadata": {},
-    "id": "e32bd0a7-fd65-4f41-ad9d-1a301417637a",
-    "created_at": "2026-04-04T16:28:05.858642+00:00"
+    "id": "c384314b-5331-4d8e-84d9-82ca6c3143eb",
+    "created_at": "2026-04-04T17:33:01.937477+00:00"
   }
 ]

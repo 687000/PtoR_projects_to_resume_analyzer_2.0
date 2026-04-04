@@ -111,20 +111,54 @@
 
         <!-- Matched projects -->
         <div v-if="store.upload.result.matched_projects?.length" class="match-list">
+          <div class="sort-bar">
+            <span class="sort-label">Sort:</span>
+            <button class="sort-btn" :class="{ active: sortOrder === 'fit_desc' }" @click="sortOrder = 'fit_desc'">Fit ↓</button>
+            <button class="sort-btn" :class="{ active: sortOrder === 'fit_asc' }" @click="sortOrder = 'fit_asc'">Fit ↑</button>
+            <button class="sort-btn" :class="{ active: sortOrder === 'name' }" @click="sortOrder = 'name'">Name</button>
+          </div>
           <div
-            v-for="mp in store.upload.result.matched_projects"
+            v-for="mp in sortedProjects"
             :key="mp.project_id"
             class="match-card"
           >
             <div class="match-header">
               <span class="match-title">{{ mp.project_title }}</span>
-              <span class="fit-badge" :class="fitClass(mp.fit_score)">{{ mp.fit_score }}%</span>
+              <div class="match-header-right">
+                <button class="select-all-btn" @click="toggleAllBullets(mp, !allSelected(mp))">
+                  {{ allSelected(mp) ? 'Deselect all' : 'Select all' }}
+                </button>
+                <span class="fit-badge" :class="fitClass(mp.fit_score)">{{ mp.fit_score }}%</span>
+              </div>
             </div>
             <div v-if="mp.addressed_requirements?.length" class="addressed">
               <span v-for="r in mp.addressed_requirements" :key="r" class="tag">{{ r }}</span>
             </div>
             <ul class="bullets">
-              <li v-for="(b, i) in mp.tailored_bullets" :key="i">{{ b.text }}</li>
+              <li
+                v-for="(b, bIdx) in mp.tailored_bullets"
+                :key="bIdx"
+                class="bullet-item"
+                :class="{ excluded: !b.included }"
+                @click="toggleBullet(mp, bIdx)"
+              >
+                <span class="toggle-icon">{{ b.included ? '☑' : '☐' }}</span>
+                <span
+                  v-if="editingKey !== `${mp.project_id}-${bIdx}`"
+                  class="bullet-text"
+                  @click.stop="startEdit(mp, bIdx, b.text)"
+                >{{ b.text }}</span>
+                <textarea
+                  v-else
+                  class="bullet-edit"
+                  v-model="editText"
+                  rows="2"
+                  @click.stop
+                  @blur="commitEdit(mp, bIdx)"
+                  @keydown.enter.prevent="commitEdit(mp, bIdx)"
+                  @keydown.escape="editingKey = null"
+                />
+              </li>
             </ul>
           </div>
         </div>
@@ -153,6 +187,9 @@ import { useResumeStore } from '../stores/resume'
 const store = useResumeStore()
 const fileInput = ref(null)
 const dragover = ref(false)
+const sortOrder = ref('fit_desc')
+const editingKey = ref(null)
+const editText = ref('')
 
 const tabs = [
   { key: 'text', label: 'Text' },
@@ -172,6 +209,15 @@ const allRequirements = computed(() => {
   return [...(r.tech_stack || []), ...(r.domain || []), ...(r.collaboration || []), ...(r.seniority || [])].slice(0, 16)
 })
 
+const sortedProjects = computed(() => {
+  const projects = store.upload.result?.matched_projects || []
+  const copy = [...projects]
+  if (sortOrder.value === 'fit_asc') copy.sort((a, b) => a.fit_score - b.fit_score)
+  else if (sortOrder.value === 'name') copy.sort((a, b) => a.project_title.localeCompare(b.project_title))
+  else copy.sort((a, b) => b.fit_score - a.fit_score)
+  return copy
+})
+
 function fitClass(score) {
   if (score >= 80) return 'high'
   if (score >= 60) return 'mid'
@@ -181,6 +227,31 @@ function fitClass(score) {
 function formatDate(iso) {
   if (!iso) return ''
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function toggleBullet(mp, bIdx) {
+  if (editingKey.value === `${mp.project_id}-${bIdx}`) return
+  mp.tailored_bullets[bIdx].included = !mp.tailored_bullets[bIdx].included
+}
+
+function allSelected(mp) {
+  return mp.tailored_bullets.every(b => b.included)
+}
+
+function toggleAllBullets(mp, value) {
+  mp.tailored_bullets.forEach(b => { b.included = value })
+}
+
+function startEdit(mp, bIdx, text) {
+  editingKey.value = `${mp.project_id}-${bIdx}`
+  editText.value = text
+}
+
+function commitEdit(mp, bIdx) {
+  if (editText.value.trim()) {
+    mp.tailored_bullets[bIdx].text = editText.value.trim()
+  }
+  editingKey.value = null
 }
 
 async function rematchExisting() {
@@ -305,6 +376,20 @@ async function rematchExisting() {
 
 /* Match cards */
 .match-list { display: flex; flex-direction: column; gap: 10px; }
+
+.sort-bar {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--text-muted);
+}
+.sort-label { font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+.sort-btn {
+  background: none; border: 1px solid var(--border);
+  border-radius: 4px; padding: 2px 8px;
+  font-size: 11px; color: var(--text-muted); cursor: pointer;
+}
+.sort-btn.active { border-color: var(--primary); color: var(--primary); font-weight: 600; background: var(--tag-bg); }
+.sort-btn:hover:not(.active) { color: var(--text); border-color: var(--text-muted); }
+
 .match-card {
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -314,6 +399,15 @@ async function rematchExisting() {
 }
 .match-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .match-title { font-size: 13px; font-weight: 600; }
+.match-header-right { display: flex; align-items: center; gap: 8px; }
+
+.select-all-btn {
+  background: none; border: none; padding: 0;
+  font-size: 11px; color: var(--primary); cursor: pointer;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.select-all-btn:hover { opacity: 0.7; }
+
 .fit-badge {
   font-size: 11px; font-weight: 700;
   padding: 2px 8px; border-radius: 100px;
@@ -324,8 +418,31 @@ async function rematchExisting() {
 
 .addressed { display: flex; flex-wrap: wrap; gap: 4px; }
 
-.bullets { padding-left: 16px; display: flex; flex-direction: column; gap: 4px; }
-.bullets li { font-size: 12px; line-height: 1.6; color: var(--text); }
+.bullets { padding: 0; list-style: none; display: flex; flex-direction: column; gap: 3px; }
+.bullet-item {
+  display: flex; align-items: flex-start; gap: 6px;
+  padding: 4px 6px; border-radius: 5px;
+  cursor: pointer; transition: background 0.1s, opacity 0.15s;
+}
+.bullet-item:hover { background: var(--tag-bg); }
+.bullet-item.excluded { opacity: 0.4; }
+
+.toggle-icon {
+  font-size: 13px; line-height: 1.65;
+  color: var(--primary); flex-shrink: 0;
+  user-select: none;
+}
+
+.bullet-text {
+  font-size: 12px; line-height: 1.65; color: var(--text); flex: 1;
+  cursor: text; border-radius: 3px; padding: 1px 3px;
+}
+.bullet-text:hover { text-decoration: underline; text-underline-offset: 2px; }
+
+.bullet-edit {
+  flex: 1; font-size: 12px; line-height: 1.65;
+  resize: none; padding: 3px 5px;
+}
 
 .no-match { font-size: 13px; color: var(--text-muted); text-align: center; padding: 16px 0; }
 

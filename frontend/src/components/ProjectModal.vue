@@ -128,6 +128,33 @@
               </div>
             </div>
 
+            <!-- JD Targets tab -->
+            <div v-if="activeTab === 'jd-targets'" class="section">
+              <p v-if="!matchedJDs.length" class="empty-note">
+                No JD targets have matched this project yet. Upload a job description on the Resume page.
+              </p>
+              <div v-else class="jd-target-list">
+                <div v-for="jd in matchedJDs" :key="jd.id" class="jd-target-row">
+                  <div class="jd-target-info">
+                    <span class="jd-role">{{ jd.role_title }}</span>
+                    <span v-if="jd.company" class="jd-company">{{ jd.company }}</span>
+                  </div>
+                  <div class="jd-target-actions">
+                    <span class="jd-fit-badge" :class="fitClass(jd.fit_score)">{{ jd.fit_score }}%</span>
+                    <button
+                      class="btn-ghost jd-rematch-btn"
+                      :disabled="rematchingJdId === jd.id"
+                      @click.stop="rematchJD(jd)"
+                      title="Re-match this JD against this project only"
+                    >
+                      <span v-if="rematchingJdId === jd.id" class="spinner-sm" />
+                      <span v-else>Re-match</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
 
           <div class="modal-footer">
@@ -157,10 +184,36 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
 import { useProjectStore } from '../stores/projects'
+import { useResumeStore } from '../stores/resume'
 import ContextForm from './ContextForm.vue'
 
 const store = useProjectStore()
+const resumeStore = useResumeStore()
 const p = computed(() => store.modal.project)
+
+const matchedJDs = computed(() => {
+  if (!p.value?.id) return []
+  return (resumeStore.jdTargetsByProject[p.value.id] || [])
+    .slice()
+    .sort((a, b) => (b.fit_score || 0) - (a.fit_score || 0))
+})
+
+function fitClass(score) {
+  if (score >= 80) return 'high'
+  if (score >= 60) return 'mid'
+  return 'low'
+}
+
+const rematchingJdId = ref(null)
+
+async function rematchJD(jd) {
+  rematchingJdId.value = jd.id
+  try {
+    await resumeStore.rematch(jd.id, [p.value.id])
+  } finally {
+    rematchingJdId.value = null
+  }
+}
 
 // --- Bullet editing ---
 const localBullets = ref([])
@@ -226,11 +279,12 @@ async function doSaveBullets(bullets) {
 }
 
 const tabs = [
-  { key: 'source',     label: 'Source & Context' },
-  { key: 'summary',    label: 'Summary' },
-  { key: 'highlights', label: 'Highlights' },
-  { key: 'bullets',    label: 'Resume Bullets' },
-  { key: 'interview',  label: 'Interview' },
+  { key: 'source',      label: 'Source & Context' },
+  { key: 'summary',     label: 'Summary' },
+  { key: 'highlights',  label: 'Highlights' },
+  { key: 'bullets',     label: 'Resume Bullets' },
+  { key: 'interview',   label: 'Interview' },
+  { key: 'jd-targets',  label: `JD Targets${matchedJDs.value.length ? ` (${matchedJDs.value.length})` : ''}` },
 ]
 const activeTab = ref('summary')
 
@@ -508,4 +562,38 @@ h2 { font-size: 15px; font-weight: 700; margin-bottom: 7px; white-space: nowrap;
   font-weight: 500;
 }
 .btn-add-bullet:hover { text-decoration: underline; }
+
+/* JD Targets tab */
+.jd-target-list { display: flex; flex-direction: column; gap: 6px; }
+.jd-target-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--surface);
+}
+.jd-target-info { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.jd-role { font-size: 13px; font-weight: 600; color: var(--text); }
+.jd-company { font-size: 11px; color: var(--text-muted); }
+
+.jd-target-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+.jd-fit-badge {
+  font-size: 11px; font-weight: 700;
+  padding: 2px 8px; border-radius: 100px; flex-shrink: 0;
+}
+.jd-fit-badge.high { background: #dcfce7; color: #166534; }
+.jd-fit-badge.mid  { background: #fef9c3; color: #854d0e; }
+.jd-fit-badge.low  { background: #f1f5f9; color: #475569; }
+
+.jd-rematch-btn { font-size: 11px; padding: 3px 9px; min-width: 64px; }
+
+.spinner-sm {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border: 2px solid rgba(0,0,0,0.12);
+  border-top-color: var(--text-muted);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>

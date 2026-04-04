@@ -80,8 +80,12 @@ export function saveJDTarget(analysis, rawJdText, sourceMetadata) {
   })
 }
 
-export function rematchJDTarget(id) {
-  return request(`/api/jd-targets/${id}`, { method: 'PATCH' })
+export function rematchJDTarget(id, projectIds = null) {
+  return request(`/api/jd-targets/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ project_ids: projectIds }),
+  })
 }
 
 export function saveJDBullets(id, matchedProjects) {

@@ -178,7 +178,8 @@ class JDSaveRequest(BaseModel):
 
 class JDPatchRequest(BaseModel):
     # Re-run matching only — no JD re-parse needed
-    pass
+    # If project_ids is provided, only match against those projects
+    project_ids: list[str] | None = None
 
 
 @app.get("/api/jd-targets")
@@ -251,12 +252,15 @@ def save_jd_target_endpoint(req: JDSaveRequest):
 
 
 @app.patch("/api/jd-targets/{target_id}")
-def rematch_jd_target(target_id: str):
-    """Re-run matching against the current project pool."""
+def rematch_jd_target(target_id: str, req: JDPatchRequest = JDPatchRequest()):
+    """Re-run matching against the current project pool, optionally filtered by project_ids."""
     t = get_jd_target(target_id)
     if not t:
         raise HTTPException(404, "Not found")
     projects = load_projects()
+    if req.project_ids is not None:
+        allowed = set(req.project_ids)
+        projects = [p for p in projects if p.get("id") in allowed]
     analysis = analyze_jd(t["raw_jd_text"], projects)
     updated = update_jd_target(
         target_id,

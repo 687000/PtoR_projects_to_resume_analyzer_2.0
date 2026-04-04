@@ -33,6 +33,23 @@ export const useResumeStore = defineStore('resume', {
         (a, b) => new Date(b.created_at) - new Date(a.created_at)
       )
     },
+    // Maps project_id → array of JD target summaries that matched it
+    jdTargetsByProject(state) {
+      const map = {}
+      for (const target of state.targets) {
+        for (const mp of (target.matched_projects || [])) {
+          if (!map[mp.project_id]) map[mp.project_id] = []
+          map[mp.project_id].push({
+            id: target.id,
+            role_title: target.role_title,
+            company: target.company,
+            fit_score: mp.fit_score,
+            created_at: target.created_at,
+          })
+        }
+      }
+      return map
+    },
   },
 
   actions: {
@@ -63,6 +80,12 @@ export const useResumeStore = defineStore('resume', {
           res = await api.analyzeJDSource(this.upload.source.trim())
         }
         this.upload.duplicate = res.duplicate || null
+        // Auto-select bullets for recommended matches (fit >= 60), unselect low fits
+        if (res.matched_projects) {
+          res.matched_projects.forEach(mp => {
+            ;(mp.tailored_bullets || []).forEach(b => { b.included = mp.fit_score >= 60 })
+          })
+        }
         this.upload.result = res
       } catch (e) {
         this.upload.analyzeError = e.message
@@ -101,6 +124,12 @@ export const useResumeStore = defineStore('resume', {
     openModal(target) {
       // Deep clone matched_projects so bullet edits don't mutate the list
       this.modal.target = JSON.parse(JSON.stringify(target))
+      // Auto-select bullets for recommended matches (fit >= 60), unselect low fits
+      if (this.modal.target.matched_projects) {
+        this.modal.target.matched_projects.forEach(mp => {
+          ;(mp.tailored_bullets || []).forEach(b => { b.included = mp.fit_score >= 60 })
+        })
+      }
       this.modal.deleteConfirm = false
       this.modal.rematching = false
       this.modal.saving = false
@@ -115,10 +144,16 @@ export const useResumeStore = defineStore('resume', {
       this.modal.saving = false
     },
 
-    async rematch(id) {
+    async rematch(id, projectIds = null) {
       this.modal.rematching = true
       try {
-        const updated = await api.rematchJDTarget(id)
+        const updated = await api.rematchJDTarget(id, projectIds)
+        // Auto-select bullets for recommended matches (fit >= 60), unselect low fits
+        if (updated.matched_projects) {
+          updated.matched_projects.forEach(mp => {
+            ;(mp.tailored_bullets || []).forEach(b => { b.included = mp.fit_score >= 60 })
+          })
+        }
         const idx = this.targets.findIndex(t => t.id === id)
         if (idx !== -1) this.targets[idx] = updated
         if (this.modal.target?.id === id) {
