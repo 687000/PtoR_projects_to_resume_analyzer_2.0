@@ -3,12 +3,15 @@ import os
 import tempfile
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, UploadFile
+from dotenv import load_dotenv
+load_dotenv()
+
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from src.analyzer import analyze_project
-from src.jd_analyzer import analyze_jd, check_duplicate
+from src.jd_analyzer import analyze_jd, check_duplicate, improve_bullets
 from src.parser import parse_input
 import src.store as store_module
 from src.store import (
@@ -100,30 +103,42 @@ def analyze_source(req: AnalyzeRequest):
 
 
 @app.post("/api/analyze/file")
-async def analyze_file_endpoint(file: UploadFile, context: str = "{}"):
-    content = await file.read()
-    if len(content) > MAX_FILE_BYTES:
-        raise HTTPException(413, "File exceeds 10 MB limit")
-
+async def analyze_file_endpoint(files: list[UploadFile] = File(...), context: str = "{}"):
     ctx = json.loads(context)
-    suffix = Path(file.filename or "upload").suffix.lower()
+    all_texts: list[str] = []
+    all_metadata: list[dict] = []
 
-    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-        tmp.write(content)
-        tmp_path = tmp.name
+    for file in files:
+        content = await file.read()
+        if len(content) > MAX_FILE_BYTES:
+            raise HTTPException(413, f"File '{file.filename}' exceeds 10 MB limit")
 
-    try:
-        parsed = parse_input(tmp_path)
-    except (ValueError, ImportError) as e:
-        raise HTTPException(422, str(e))
-    finally:
-        os.unlink(tmp_path)
+        suffix = Path(file.filename or "upload").suffix.lower()
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
 
-    analysis = analyze_project(parsed["raw_text"], ctx)
+        try:
+            parsed = parse_input(tmp_path)
+        except (ValueError, ImportError) as e:
+            raise HTTPException(422, f"{file.filename}: {e}")
+        finally:
+            os.unlink(tmp_path)
+
+        all_texts.append(parsed["raw_text"])
+        all_metadata.append(parsed["metadata"])
+
+    raw_text = "\n\n".join(all_texts)
+    source_metadata = (
+        all_metadata[0] if len(all_metadata) == 1
+        else {"files": all_metadata, "count": len(all_metadata)}
+    )
+
+    analysis = analyze_project(raw_text, ctx)
     return {
         **analysis,
-        "raw_text": parsed["raw_text"],
-        "source_metadata": parsed["metadata"],
+        "raw_text": raw_text,
+        "source_metadata": source_metadata,
     }
 
 
@@ -270,6 +285,18 @@ def rematch_jd_target(target_id: str, req: JDPatchRequest = JDPatchRequest()):
         },
     )
     return updated
+
+
+class ImproveBulletsRequest(BaseModel):
+    bullets: list[str]
+
+
+@app.post("/api/jd-targets/{target_id}/improve-bullets")
+def improve_bullets_endpoint(target_id: str, req: ImproveBulletsRequest):
+    t = get_jd_target(target_id)
+    if not t:
+        raise HTTPException(404, "Not found")
+    return improve_bullets(req.bullets, t.get("raw_jd_text", ""))
 
 
 @app.patch("/api/jd-targets/{target_id}/bullets")

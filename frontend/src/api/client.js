@@ -23,9 +23,9 @@ export function analyzeSource(source, context) {
   })
 }
 
-export function analyzeFile(file, context) {
+export function analyzeFile(files, context) {
   const fd = new FormData()
-  fd.append('file', file)
+  for (const file of files) fd.append('files', file)
   fd.append('context', JSON.stringify(context))
   return request('/api/analyze/file', { method: 'POST', body: fd })
 }
@@ -93,6 +93,14 @@ export function saveJDBullets(id, matchedProjects) {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ matched_projects: matchedProjects }),
+  })
+}
+
+export function improveJDBullets(id, bullets) {
+  return request(`/api/jd-targets/${id}/improve-bullets`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ bullets }),
   })
 }
 

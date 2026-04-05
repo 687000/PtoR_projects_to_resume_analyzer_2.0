@@ -279,7 +279,7 @@ The adapter is retained and functional — it can be re-connected by replacing t
 1. Restore `_build_prompt` in `analyzer.py`
 2. Call `complete_json(prompt, max_tokens=4096)`
 3. Pass result through `_validate`
-4. Set `OPENAI_API_KEY` in `.env`
+4. Set `ANTHROPIC_API_KEY=` in `.env`
 
 ---
 

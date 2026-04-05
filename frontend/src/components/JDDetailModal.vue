@@ -73,7 +73,7 @@
                 :class="{ excluded: !b.included }"
                 @click="toggleBullet(mpIdx, bIdx)"
               >
-                <span class="toggle-icon">{{ b.included ? '☑' : '☐' }}</span>
+                <span class="toggle-icon" @click.stop="toggleBullet(mpIdx, bIdx)">{{ b.included ? '☑' : '☐' }}</span>
                 <span
                   v-if="editingKey !== `${mpIdx}-${bIdx}`"
                   class="bullet-text"
@@ -180,10 +180,20 @@
             <input type="checkbox" v-model="showProjectTitle" @change="regenerateCopyText" />
             Show project titles
           </label>
+          <span v-if="improveError" class="improve-error">{{ improveError }}</span>
         </div>
         <textarea class="copy-popup-textarea" v-model="copyPopupText" rows="14" />
         <div class="copy-popup-footer">
           <button class="btn-secondary" @click="showCopyPopup = false">Close</button>
+          <button
+            class="btn-improve"
+            :disabled="improving"
+            @click="runImprove"
+            title="Use AI to reduce redundancy and align bullets to this JD"
+          >
+            <span v-if="improving" class="spinner dark" />
+            {{ improving ? 'Improving…' : 'Improve with AI' }}
+          </button>
           <button class="btn-primary" @click="copyFromPopup">
             {{ copied ? 'Copied!' : 'Copy to Clipboard' }}
           </button>
@@ -212,6 +222,8 @@ const showProjectTitle = ref(true)
 const showRematchPanel = ref(false)
 const selectedProjectIds = ref([])
 const showJDSource = ref(false)
+const improving = ref(false)
+const improveError = ref('')
 
 const allRequirements = computed(() => {
   const r = t.value?.extracted_requirements
@@ -236,7 +248,10 @@ function formatDate(iso) {
 }
 
 function toggleBullet(mpIdx, bIdx) {
-  if (editingKey.value === `${mpIdx}-${bIdx}`) return
+  // If this bullet is in edit mode, commit first then proceed as a normal click
+  if (editingKey.value === `${mpIdx}-${bIdx}`) {
+    commitEdit(mpIdx, bIdx)
+  }
   const b = matchedProjects.value[mpIdx].tailored_bullets[bIdx]
   b.included = !b.included
 }
@@ -279,11 +294,6 @@ function buildResumeText() {
   return lines.join('\n').trim()
 }
 
-function openCopyPopup() {
-  copyPopupText.value = buildResumeText()
-  showCopyPopup.value = true
-}
-
 function regenerateCopyText() {
   copyPopupText.value = buildResumeText()
 }
@@ -324,6 +334,36 @@ async function copyFromPopup() {
   await navigator.clipboard.writeText(copyPopupText.value)
   copied.value = true
   setTimeout(() => { copied.value = false }, 2000)
+}
+
+async function runImprove() {
+  // Collect all currently included bullets as a flat list
+  const bullets = []
+  for (const mp of matchedProjects.value) {
+    for (const b of (mp.tailored_bullets || [])) {
+      if (b.included && b.text?.trim()) bullets.push(b.text.trim())
+    }
+  }
+  if (!bullets.length) return
+
+  improving.value = true
+  improveError.value = ''
+  try {
+    const res = await store.improveBullets(bullets)
+    if (res?.improved_bullets?.length) {
+      copyPopupText.value = res.improved_bullets.map(b => `• ${b}`).join('\n')
+    }
+  } catch (e) {
+    improveError.value = e.message || 'Improve failed'
+  } finally {
+    improving.value = false
+  }
+}
+
+function openCopyPopup() {
+  copyPopupText.value = buildResumeText()
+  improveError.value = ''
+  showCopyPopup.value = true
 }
 </script>
 
@@ -626,7 +666,25 @@ h2 { font-size: 15px; font-weight: 700; margin-bottom: 5px; white-space: nowrap;
 }
 
 .copy-popup-footer {
-  display: flex; justify-content: flex-end; gap: 8px;
+  display: flex; justify-content: flex-end; align-items: center; gap: 8px;
   padding: 12px 18px;
+}
+
+.btn-improve {
+  display: flex; align-items: center; gap: 6px;
+  background: none;
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  font-size: 13px; font-weight: 600;
+  padding: 6px 14px; border-radius: 6px;
+  cursor: pointer;
+}
+.btn-improve:hover:not(:disabled) { background: var(--tag-bg); }
+.btn-improve:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.improve-error {
+  font-size: 11px;
+  color: var(--danger);
+  flex: 1;
 }
 </style>

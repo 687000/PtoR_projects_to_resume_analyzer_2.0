@@ -1,3 +1,4 @@
+import os
 import re
 
 VALID_TAGS = {
@@ -69,13 +70,215 @@ _ACTION_VERBS = [
 
 def analyze_project(raw_text: str, context: dict) -> dict:
     """
-    Analyze project text and user-provided context using rule-based extraction.
-
-    No external LLM calls. Tags and category are keyword-matched; output fields
-    are structured from the provided context and extracted sentences.
-
-    Returns a structured project record ready for storage.
+    Analyze project text and context. Uses LLM when ANTHROPIC_API_KEY is set,
+    falls back to rule-based extraction otherwise.
     """
+    if os.getenv("ANTHROPIC_API_KEY"):
+        try:
+            result = _analyze_with_llm(raw_text, context)
+            _validate(result)
+            result["context"] = context
+            return result
+        except Exception:
+            pass  # fall through to rule-based
+
+    return _analyze_rule_based(raw_text, context)
+
+
+def _analyze_with_llm(raw_text: str, context: dict) -> dict:
+    from src.ai.client import complete_json
+
+    t1           = context.get("t1_responsibilities", "").strip()
+    t2           = context.get("t2_responsibilities", "").strip()
+    arch         = context.get("architecture_details", "").strip()
+    outcomes     = context.get("outcomes", "").strip()
+    challenges   = context.get("challenges", "").strip()
+    coordination = context.get("coordination", "").strip()
+    background   = context.get("business_background", "").strip()
+    team_req     = context.get("team_client_requirements", "").strip()
+    pm           = context.get("pm_decisions", "").strip()
+
+    context_block = "\n".join(filter(None, [
+        f"Business background (NOT the engineer's work): {background}" if background else "",
+        f"Team/client requirements: {team_req}" if team_req else "",
+        f"PM decisions: {pm}" if pm else "",
+        f"T1 — Design & architecture scope (engineer's own work): {t1}" if t1 else "",
+        f"T2 — Implementation (engineer's own work): {t2}" if t2 else "",
+        f"Architecture details: {arch}" if arch else "",
+        f"Cross-team coordination: {coordination}" if coordination else "",
+        f"Challenges & tradeoffs: {challenges}" if challenges else "",
+        f"Outcomes & impact: {outcomes}" if outcomes else "",
+    ]))
+
+    valid_tags = sorted(VALID_TAGS)
+    valid_cats = sorted(VALID_CATEGORIES)
+
+    prompt = f"""You are analyzing a software engineer's project to produce structured resume content.
+
+--- RAW PROJECT TEXT ---
+{raw_text[:3000]}
+
+--- ENGINEER-PROVIDED CONTEXT ---
+{context_block or "(none provided)"}
+
+--- TASK ---
+Produce a JSON object with exactly these fields:
+
+{{
+  "title": "Project title — extract from the raw text or infer from context (≤80 chars)",
+  "category": "One of: {', '.join(valid_cats)}",
+  "tags": ["Pick relevant tags from this list only: {', '.join(valid_tags)}"],
+  "summary": "2–3 sentence paragraph describing what the engineer built technically and what it enabled. Written in third person, past tense. Use ONLY universal engineering language — do NOT include company names, product names, project names, internal platform names (e.g. no 'v9.4', no platform codenames), designer names, stakeholder names, or any internal organizational terminology.",
+  "ownership_description": "Paragraph clearly separating business context (background/PM decisions) from the engineer's own T1 design work and T2 implementation. Use universal engineering language — replace all internal names, platform labels, and team-specific terminology with generic technical descriptions.",
+  "technical_highlights": [
+    "3–5 specific technical achievements. Each is one sentence naming the concrete system, pattern, or decision — not generic praise. No internal names or product references."
+  ],
+  "interview_answer": "STAR format answer (4 paragraphs labelled Situation / Task / Action / Result) the engineer can speak aloud in an interview. ~150 words total. Use universal language — no company, product, or internal system names.",
+  "self_intro": "One sentence (≤25 words) the engineer can use to introduce this project verbally. No internal names.",
+  "talking_points": ["3–5 short bullet topics the engineer should be ready to discuss in depth"]
+}}
+
+Rules:
+- Only use facts present in the raw text and context above — do not invent details
+- Tags must be chosen only from the provided list; omit any that don't apply
+- Category must be exactly one of the provided values
+- Strip all internal names: no company names, product names, project names, internal platform names, version labels, designer names, stakeholder names, or team-specific terminology anywhere in the output"""
+
+    result = complete_json(prompt, max_tokens=2048)
+
+    # Generate resume bullets via the dedicated prompt
+    bullets_result = _generate_resume_bullets(
+        task_description=raw_text[:3000],
+        additional_context=context_block or "(none provided)",
+    )
+    result["summary_bullet"] = bullets_result.get("summary_bullet", "")
+    result["resume_bullets"] = bullets_result.get("resume_bullets", [])
+
+    # Merge ownership_classification from raw context (not LLM-generated)
+    result["ownership_classification"] = {
+        "background": " ".join(filter(None, [background, team_req, pm])) or "(not provided)",
+        "t1_contribution": t1 or "(not provided)",
+        "t2_contribution": t2 or "(not provided)",
+        "coordination": coordination or "(not provided)",
+        "outcome": outcomes or "(not provided)",
+    }
+
+    return result
+
+
+def _generate_resume_bullets(task_description: str, additional_context: str) -> dict:
+    """
+    Calls the LLM using the resume-bullets-prompt spec.
+    Returns {"summary_bullet": "...", "resume_bullets": ["...", ...]}.
+    """
+    from src.ai.client import complete_json
+
+    prompt = f"""You are a professional resume writer specializing in software engineering roles.
+
+Your task is to convert a software engineer's project task description into polished, technically strong resume bullets that are also useful for technical interview preparation.
+
+## Goal
+
+Produce output that focuses only on the **universal technical work**:
+- what was changed
+- in what engineering scenario
+- what mechanism, pattern, or system behavior was involved
+- what technically improved as a result
+
+Remove all project-specific background and internal wording.
+
+The output should be reusable in any software engineering context and understandable without knowledge of the original company, product, team, or project.
+
+---
+
+## Input
+
+**Task description:**
+{task_description}
+
+**Additional context (optional):**
+{additional_context}
+
+---
+
+## Output Format
+
+Return a JSON object with exactly this structure:
+
+{{
+  "summary_bullet": "...",
+  "resume_bullets": [
+    "...",
+    "...",
+    "..."
+  ]
+}}
+
+---
+
+## Required Behavior
+
+### 1) summary_bullet — primary standalone bullet
+
+Must:
+- be exactly one sentence
+- start with a strong past-tense action verb
+- include the technical context or scenario
+- state the main technical action
+- mention the core mechanism, pattern, or architectural change
+- describe the resulting technical improvement or effect when stated or clearly implied
+- be **22–38 words**
+- be understandable without any project title or extra explanation
+
+### 2) resume_bullets — supporting bullets (3–5)
+
+Each must:
+- start with a different past-tense action verb (no verb repeated across all bullets including summary_bullet)
+- add specific technical detail not fully covered in summary_bullet
+- describe a concrete implementation, refactor, safeguard, optimization, integration, or system behavior
+- use universal technical language
+- be **14–32 words**
+- be self-contained and readable without project or product context
+
+---
+
+## Universalization Rules
+
+Do NOT include: company names, project names, team names, feature names, initiative names, internal architecture labels, internal service names, product names, customer or business background, roadmap context, proprietary terminology, or product-domain wording that would not transfer to another engineering environment.
+
+Replace internal names with generic technical descriptions:
+- named store/hook/function → "a centralized store", "a state management hook", "a client-side utility"
+- internal service name → "a backend service", "an internal platform service", "a processing service"
+- internal event system → "an event bus", "an asynchronous messaging layer", "an event-driven workflow"
+- feature flag label → "a feature flag", "a configuration toggle"
+- product surface name → "a user-facing interface", "a client module", "an administrative workflow"
+
+---
+
+## Technical Language for Web / Software Engineering Roles
+
+Write at the level of a strong mid-to-senior software engineer. Use concrete engineering language:
+
+- For frontend/web: component architecture, reactivity model, state management (Pinia/Vuex/Redux), lifecycle hooks, virtual DOM, lazy loading, code splitting, composable/hook patterns, API layer design, form validation, event delegation, render optimization
+- For backend/API: REST/GraphQL endpoint design, middleware pipeline, request validation, authentication/authorization flow, ORM query optimization, async processing, caching strategy, error handling pattern
+- For system/platform: service abstraction, dependency injection, event-driven architecture, pub/sub pattern, retry/fallback logic, interface contract, modular decomposition
+
+Avoid vague product-level descriptions like "enabled users to...", "allowed the team to...", "improved the experience of...". These are not engineering bullets.
+
+---
+
+## Content Constraints
+
+- Do NOT invent facts, metrics, scale, latency, reliability, or performance results
+- Only use details explicitly stated or clearly implied by the input
+- Use past tense throughout
+- Do not use vague filler: "worked on", "helped with", "was involved in", "contributed to"
+- Do not write business summaries, product summaries, mini design docs, or stakeholder context"""
+
+    return complete_json(prompt, max_tokens=1024)
+
+
+def _analyze_rule_based(raw_text: str, context: dict) -> dict:
     combined = raw_text + " " + " ".join(str(v) for v in context.values())
     combined_lower = combined.lower()
 
@@ -83,21 +286,18 @@ def analyze_project(raw_text: str, context: dict) -> dict:
     category = _detect_category(combined_lower)
     title = _extract_title(raw_text, context)
 
-    t1 = context.get("t1_responsibilities", "").strip()
-    t2 = context.get("t2_responsibilities", "").strip()
-    outcomes = context.get("outcomes", "").strip()
-    challenges = context.get("challenges", "").strip()
-    arch = context.get("architecture_details", "").strip()
+    t1           = context.get("t1_responsibilities", "").strip()
+    t2           = context.get("t2_responsibilities", "").strip()
+    outcomes     = context.get("outcomes", "").strip()
+    challenges   = context.get("challenges", "").strip()
+    arch         = context.get("architecture_details", "").strip()
     coordination = context.get("coordination", "").strip()
-    background = context.get("business_background", "").strip()
-    team_req = context.get("team_client_requirements", "").strip()
-    pm = context.get("pm_decisions", "").strip()
+    background   = context.get("business_background", "").strip()
+    team_req     = context.get("team_client_requirements", "").strip()
+    pm           = context.get("pm_decisions", "").strip()
 
     highlights = _extract_highlights(raw_text, combined_lower)
     bullets = _build_bullets([t1, t2, arch, coordination])
-
-    summary = _build_summary(title, t1, t2, outcomes, raw_text)
-    ownership_desc = _build_ownership_desc(background, pm, t1, t2, coordination)
 
     result = {
         "title": title,
@@ -110,9 +310,10 @@ def analyze_project(raw_text: str, context: dict) -> dict:
             "coordination": coordination or "(not provided)",
             "outcome": outcomes or "(not provided)",
         },
-        "summary": summary,
-        "ownership_description": ownership_desc,
+        "summary": _build_summary(title, t1, t2, outcomes, raw_text),
+        "ownership_description": _build_ownership_desc(background, pm, t1, t2, coordination),
         "technical_highlights": highlights or ["(no technical highlights extracted — add more context)"],
+        "summary_bullet": "(LLM required for resume bullets — set ANTHROPIC_API_KEY)",
         "resume_bullets": bullets or ["(add T1/T2 responsibilities to generate bullets)"],
         "interview_answer": _build_star(context),
         "self_intro": _build_self_intro(title, t1, t2),
@@ -261,7 +462,7 @@ def _validate(result: dict) -> None:
     required = [
         "title", "category", "tags", "ownership_classification",
         "summary", "ownership_description", "technical_highlights",
-        "resume_bullets", "interview_answer", "self_intro", "talking_points",
+        "summary_bullet", "resume_bullets", "interview_answer", "self_intro", "talking_points",
     ]
     for key in required:
         if key not in result:

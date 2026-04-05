@@ -23,7 +23,7 @@ export const useProjectStore = defineStore('projects', {
       open: false,
       activeTab: 'text',
       source: '',
-      file: null,
+      files: [],
       context: emptyContext(),
       analyzing: false,
       result: null,
@@ -89,8 +89,8 @@ export const useProjectStore = defineStore('projects', {
       try {
         const ctx = this.upload.context
         if (this.upload.activeTab === 'file') {
-          if (!this.upload.file) throw new Error('No file selected')
-          this.upload.result = await api.analyzeFile(this.upload.file, ctx)
+          if (!this.upload.files.length) throw new Error('No file selected')
+          this.upload.result = await api.analyzeFile(this.upload.files, ctx)
         } else {
           if (!this.upload.source.trim()) throw new Error('Input is empty')
           this.upload.result = await api.analyzeSource(this.upload.source.trim(), ctx)
@@ -122,7 +122,7 @@ export const useProjectStore = defineStore('projects', {
       this.upload.open = false
       this.upload.activeTab = 'text'
       this.upload.source = ''
-      this.upload.file = null
+      this.upload.files = []
       this.upload.context = emptyContext()
       this.upload.result = null
       this.upload.analyzeError = null

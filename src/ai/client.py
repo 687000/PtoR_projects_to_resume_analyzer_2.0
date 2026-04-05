@@ -1,25 +1,30 @@
 import json
-from openai import OpenAI
+import os
 
-_client: OpenAI | None = None
+import anthropic
 
-MODEL = "gpt-4o"
+_client: anthropic.Anthropic | None = None
+
+MODEL = "claude-sonnet-4-6"
 
 
-def get_client() -> OpenAI:
+def get_client() -> anthropic.Anthropic:
     global _client
     if _client is None:
-        _client = OpenAI()
+        api_key = os.getenv("ANTHROPIC_API_KEY")
+        if not api_key:
+            raise RuntimeError("ANTHROPIC_API_KEY environment variable is not set")
+        _client = anthropic.Anthropic(api_key=api_key)
     return _client
 
 
 def complete(prompt: str, max_tokens: int = 4096) -> str:
-    response = get_client().chat.completions.create(
+    response = get_client().messages.create(
         model=MODEL,
         max_tokens=max_tokens,
         messages=[{"role": "user", "content": prompt}],
     )
-    return response.choices[0].message.content
+    return response.content[0].text
 
 
 def complete_json(prompt: str, max_tokens: int = 4096) -> dict:
@@ -28,8 +33,8 @@ def complete_json(prompt: str, max_tokens: int = 4096) -> dict:
 
     # Strip markdown code fences if the model includes them anyway
     if text.startswith("```"):
-        text = text[text.index("\n") + 1 :]
+        text = text[text.index("\n") + 1:]
         if "```" in text:
-            text = text[: text.rindex("```")]
+            text = text[:text.rindex("```")]
 
     return json.loads(text)

@@ -52,10 +52,12 @@
               @drop.prevent="onDrop"
               @click="fileInput.click()"
             >
-              <span v-if="store.upload.file">📄 {{ store.upload.file.name }}</span>
-              <span v-else>Drop a file here or <u>click to browse</u><br /><small>PDF, TXT, MD, HTML, PNG, JPG</small></span>
+              <template v-if="store.upload.files.length">
+                <div v-for="f in store.upload.files" :key="f.name" class="file-pill">📄 {{ f.name }}</div>
+              </template>
+              <span v-else>Drop files here or <u>click to browse</u><br /><small>PDF, TXT, MD, HTML, PNG, JPG — multiple files allowed</small></span>
             </div>
-            <input ref="fileInput" type="file" accept=".pdf,.txt,.md,.html,.htm,.jpg,.jpeg,.png,.bmp,.tiff,.webp" style="display:none" @change="onFileChange" />
+            <input ref="fileInput" type="file" multiple accept=".pdf,.txt,.md,.html,.htm,.jpg,.jpeg,.png,.bmp,.tiff,.webp" style="display:none" @change="onFileChange" />
           </template>
 
           <template v-else>
@@ -117,11 +119,11 @@ const tabs = [
 ]
 
 function onFileChange(e) {
-  store.upload.file = e.target.files[0] || null
+  store.upload.files = Array.from(e.target.files)
 }
 function onDrop(e) {
   dragover.value = false
-  store.upload.file = e.dataTransfer.files[0] || null
+  store.upload.files = Array.from(e.dataTransfer.files)
 }
 </script>
 
@@ -235,6 +237,7 @@ function onDrop(e) {
   background: var(--tag-bg);
 }
 .drop-zone small { font-size: 11px; }
+.file-pill { font-size: 13px; color: var(--text); line-height: 1.8; }
 
 .hint { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 

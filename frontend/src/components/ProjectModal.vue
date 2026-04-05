@@ -93,9 +93,13 @@
 
             <!-- Bullets tab -->
             <div v-if="activeTab === 'bullets'" class="section">
+              <div v-if="p.summary_bullet" class="field">
+                <label>Primary Bullet</label>
+                <p class="summary-bullet">{{ p.summary_bullet }}</p>
+              </div>
               <div class="field">
                 <div class="bullets-header">
-                  <label>Resume Bullets</label>
+                  <label>Supporting Bullets</label>
                   <span v-if="bulletSaved" class="saved-indicator">Saved</span>
                 </div>
                 <div class="bullets-list">
@@ -484,6 +488,16 @@ h2 { font-size: 15px; font-weight: 700; margin-bottom: 7px; white-space: nowrap;
 
 .danger-ghost { color: var(--danger); }
 .danger-ghost:hover { background: #fdf2f4; }
+
+.summary-bullet {
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--text);
+  background: #f0f7ff;
+  border-left: 3px solid var(--primary);
+  padding: 8px 12px;
+  border-radius: 0 6px 6px 0;
+}
 
 /* Bullet inline editing */
 .bullets-header {

@@ -11,7 +11,7 @@
     </div>
 
     <div v-if="showSource" class="source-preview">
-      <pre>{{ result.raw_text?.slice(0, 1200) }}{{ result.raw_text?.length > 1200 ? '\n…(truncated)' : '' }}</pre>
+      <pre>{{ result.raw_text }}</pre>
     </div>
 
     <!-- Title + tags -->
@@ -60,8 +60,12 @@
       </div>
 
       <div v-if="activeTab === 'bullets'" class="section">
+        <div v-if="result.summary_bullet" class="field">
+          <label>Primary Bullet</label>
+          <textarea v-model="result.summary_bullet" rows="2" />
+        </div>
         <div class="field">
-          <label>Resume Bullets</label>
+          <label>Supporting Bullets</label>
           <ListEditor v-model="result.resume_bullets" />
         </div>
       </div>

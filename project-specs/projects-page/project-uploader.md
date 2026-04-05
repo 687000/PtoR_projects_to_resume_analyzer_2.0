@@ -39,7 +39,7 @@ The uploader is a collapsible panel at the top of the Projects Page. It operates
 | Tab | Accepted formats | Notes |
 |---|---|---|
 | Text | Plain text paste | Direct textarea |
-| File | `.pdf`, `.txt`, `.md`, `.html`, `.htm`, `.jpg`, `.jpeg`, `.png`, `.bmp`, `.tiff`, `.webp` | Drag-and-drop or file picker; max 10 MB |
+| File | `.pdf`, `.txt`, `.md`, `.html`, `.htm`, `.jpg`, `.jpeg`, `.png`, `.bmp`, `.tiff`, `.webp` | Drag-and-drop or file picker; multiple files allowed; max 10 MB per file |
 | URL | `http://` / `https://` | Fetches and parses page content |
 | Notion | Notion page URL | Requires `NOTION_TOKEN` env var |
 
@@ -96,7 +96,7 @@ A "Preview extracted text" toggle shows the raw extracted text from the source.
 
 **State (Pinia `projectStore.upload`):**
 ```
-open, activeTab, source, file, context,
+open, activeTab, source, files, context,
 analyzing, result, analyzeError
 ```
 

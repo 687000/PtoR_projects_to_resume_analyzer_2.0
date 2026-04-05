@@ -124,10 +124,12 @@ export const useResumeStore = defineStore('resume', {
     openModal(target) {
       // Deep clone matched_projects so bullet edits don't mutate the list
       this.modal.target = JSON.parse(JSON.stringify(target))
-      // Auto-select bullets for recommended matches (fit >= 60), unselect low fits
+      // Only auto-select when the bullet has no saved included state yet
       if (this.modal.target.matched_projects) {
         this.modal.target.matched_projects.forEach(mp => {
-          ;(mp.tailored_bullets || []).forEach(b => { b.included = mp.fit_score >= 60 })
+          ;(mp.tailored_bullets || []).forEach(b => {
+            if (b.included === undefined) b.included = mp.fit_score >= 60
+          })
         })
       }
       this.modal.deleteConfirm = false
@@ -181,6 +183,12 @@ export const useResumeStore = defineStore('resume', {
       } finally {
         this.modal.saving = false
       }
+    },
+
+    async improveBullets(bullets) {
+      const id = this.modal.target?.id
+      if (!id || !bullets.length) return null
+      return api.improveJDBullets(id, bullets)
     },
 
     async deleteTarget(id) {

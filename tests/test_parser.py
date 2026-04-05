@@ -171,3 +171,52 @@ def test_extract_notion_page_id_standard_url():
 
 def test_extract_notion_page_id_no_match():
     assert _extract_notion_page_id("https://www.notion.so/short") is None
+
+
+def test_pdf_file(tmp_path: Path):
+    f = tmp_path / "report.pdf"
+    f.write_bytes(b"fake pdf bytes")
+
+    mock_page = MagicMock()
+    mock_page.extract_text.return_value = "PDF project content here"
+
+    mock_pdf = MagicMock()
+    mock_pdf.__enter__ = MagicMock(return_value=mock_pdf)
+    mock_pdf.__exit__ = MagicMock(return_value=False)
+    mock_pdf.pages = [mock_page]
+
+    with patch("pdfplumber.open", return_value=mock_pdf):
+        result = parse_input(str(f))
+
+    assert result["source_type"] == "pdf"
+    assert "PDF project content here" in result["raw_text"]
+    assert result["metadata"]["filename"] == "report.pdf"
+    assert result["metadata"]["pages"] == 1
+
+
+def test_pdf_file_no_text_raises(tmp_path: Path):
+    f = tmp_path / "empty.pdf"
+    f.write_bytes(b"fake pdf bytes")
+
+    mock_page = MagicMock()
+    mock_page.extract_text.return_value = ""
+
+    mock_pdf = MagicMock()
+    mock_pdf.__enter__ = MagicMock(return_value=mock_pdf)
+    mock_pdf.__exit__ = MagicMock(return_value=False)
+    mock_pdf.pages = [mock_page]
+
+    with patch("pdfplumber.open", return_value=mock_pdf):
+        with pytest.raises(ValueError, match="No extractable text"):
+            parse_input(str(f))
+
+
+def test_htm_extension(tmp_path: Path):
+    html = "<html><body><p>Project built with FastAPI.</p></body></html>"
+    f = tmp_path / "page.htm"
+    f.write_text(html, encoding="utf-8")
+
+    result = parse_input(str(f))
+    assert result["source_type"] == "html_file"
+    assert "FastAPI" in result["raw_text"]
+    assert result["metadata"]["filename"] == "page.htm"
