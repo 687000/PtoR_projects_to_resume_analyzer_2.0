@@ -22,9 +22,6 @@ The system's separation of a project record into what belongs to the engineer (T
 
 ## Output Formats
 
-**Role-Aligned Version**
-A reframing of the same project for a specific target role (e.g. Vue web developer, middle office developer) without changing the underlying facts. Same evidence, different emphasis.
-
 **Resume Bullet**
 A single accomplishment statement beginning with a strong action verb, grounded in specific project evidence. Format: `[Action verb] + [what you did] + [impact/result]`.
 
@@ -87,4 +84,4 @@ Categories are auto-detected from keyword frequency in the uploaded content.
 
 ## Job Description (JD)
 
-A job posting uploaded by the user to trigger the **Job Matching** workflow. The system extracts requirements, scores saved projects by fit, and generates tailored resume output ranked by relevance. *(Job matching is a planned module — not yet implemented.)*
+A job posting uploaded by the user to trigger the **Job Matching** workflow. The system extracts requirements, scores saved projects by fit, and generates tailored resume output ranked by relevance.

@@ -1,40 +1,40 @@
-import json
 import os
-
+import json
 import anthropic
+from dotenv import load_dotenv
 
-_client: anthropic.Anthropic | None = None
+load_dotenv()
 
-MODEL = "claude-sonnet-4-6"
+_client = None
 
 
 def get_client() -> anthropic.Anthropic:
     global _client
     if _client is None:
-        api_key = os.getenv("ANTHROPIC_API_KEY")
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
         if not api_key:
-            raise RuntimeError("ANTHROPIC_API_KEY environment variable is not set")
+            raise RuntimeError("ANTHROPIC_API_KEY not set")
         _client = anthropic.Anthropic(api_key=api_key)
     return _client
 
 
-def complete(prompt: str, max_tokens: int = 4096) -> str:
-    response = get_client().messages.create(
-        model=MODEL,
-        max_tokens=max_tokens,
-        messages=[{"role": "user", "content": prompt}],
-    )
+def complete(prompt: str, system: str = "", max_tokens: int = 4096) -> str:
+    client = get_client()
+    messages = [{"role": "user", "content": prompt}]
+    kwargs = {"model": "claude-opus-4-6", "max_tokens": max_tokens, "messages": messages}
+    if system:
+        kwargs["system"] = system
+    response = client.messages.create(**kwargs)
     return response.content[0].text
 
 
-def complete_json(prompt: str, max_tokens: int = 4096) -> dict:
-    full_prompt = prompt + "\n\nRespond with valid JSON only. No markdown fences, no explanation."
-    text = complete(full_prompt, max_tokens).strip()
-
-    # Strip markdown code fences if the model includes them anyway
-    if text.startswith("```"):
-        text = text[text.index("\n") + 1:]
-        if "```" in text:
-            text = text[:text.rindex("```")]
-
-    return json.loads(text)
+def complete_json(prompt: str, system: str = "", max_tokens: int = 4096) -> dict:
+    text = complete(prompt, system=system, max_tokens=max_tokens)
+    start = text.find("{")
+    end = text.rfind("}") + 1
+    if start == -1 or end == 0:
+        start = text.find("[")
+        end = text.rfind("]") + 1
+    if start == -1 or end == 0:
+        raise ValueError(f"No JSON found in response: {text[:200]}")
+    return json.loads(text[start:end])

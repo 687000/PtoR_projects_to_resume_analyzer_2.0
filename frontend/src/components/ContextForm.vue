@@ -1,99 +1,86 @@
 <template>
   <div class="context-form">
-    <section>
-      <button type="button" class="section-toggle" @click="bgOpen = !bgOpen">
-        <span>Background <em>(not your work)</em></span>
-        <span class="chevron" :class="{ open: bgOpen }">▸</span>
-      </button>
-      <div v-show="bgOpen" class="section-body">
-        <div class="field">
+    <details class="accordion" :open="bgOpen">
+      <summary @click.prevent="bgOpen = !bgOpen" class="accordion-header">
+        <span>Background <span class="text-muted text-small">(not your work)</span></span>
+        <span class="chevron">{{ bgOpen ? '▲' : '▼' }}</span>
+      </summary>
+      <div class="accordion-body">
+        <div class="form-group">
           <label>Business / project background</label>
-          <textarea v-model="local.business_background" rows="2" placeholder="What is this project about? Who is the client or team?" />
+          <textarea v-model="ctx.background.business_background" placeholder="What is this project about? Business context..." />
         </div>
-        <div class="field">
+        <div class="form-group">
           <label>Team / client requirements</label>
-          <textarea v-model="local.team_client_requirements" rows="2" placeholder="What did the team or client ask for?" />
+          <textarea v-model="ctx.background.team_client_requirements" placeholder="What did the team or client need?" />
         </div>
-        <div class="field">
+        <div class="form-group">
           <label>PM product decisions</label>
-          <textarea v-model="local.pm_decisions" rows="2" placeholder="Key product decisions made by PMs (not you)" />
+          <textarea v-model="ctx.background.pm_product_decisions" placeholder="Key decisions from product management..." />
         </div>
       </div>
-    </section>
+    </details>
 
-    <section>
-      <button type="button" class="section-toggle" @click="contribOpen = !contribOpen">
+    <details class="accordion" :open="contribOpen">
+      <summary @click.prevent="contribOpen = !contribOpen" class="accordion-header">
         <span>Your Contributions</span>
-        <span class="chevron" :class="{ open: contribOpen }">▸</span>
-      </button>
-      <div v-show="contribOpen" class="section-body">
-        <div class="field">
-          <label>T1 — scope analysis, API/interface design</label>
-          <textarea v-model="local.t1_responsibilities" rows="2" placeholder="Technical analysis, platform assessment, interface definitions you drove" />
+        <span class="chevron">{{ contribOpen ? '▲' : '▼' }}</span>
+      </summary>
+      <div class="accordion-body">
+        <div class="form-group">
+          <label>T1 — Scope analysis, API/interface design</label>
+          <textarea v-model="ctx.contributions.t1_responsibilities" placeholder="Architecture planning, interface design, scope analysis..." />
         </div>
-        <div class="field">
-          <label>T2 — implementation, web development</label>
-          <textarea v-model="local.t2_responsibilities" rows="2" placeholder="Hands-on coding, feature delivery, detailed design" />
+        <div class="form-group">
+          <label>T2 — Implementation, web development</label>
+          <textarea v-model="ctx.contributions.t2_responsibilities" placeholder="What you actually built, coded, or shipped..." />
         </div>
-        <div class="field">
+        <div class="form-group">
           <label>Architecture details</label>
-          <textarea v-model="local.architecture_details" rows="2" placeholder="Models, controllers, stores, views, APIs you defined" />
+          <textarea v-model="ctx.contributions.architecture_details" placeholder="Architectural decisions you made or drove..." />
         </div>
-        <div class="field">
+        <div class="form-group">
           <label>Cross-platform / cross-functional coordination</label>
-          <textarea v-model="local.coordination" rows="2" placeholder="Web / mobile / server coordination, stakeholder communication" />
+          <textarea v-model="ctx.contributions.cross_functional_coordination" placeholder="Coordination with mobile, backend, design, PM..." />
         </div>
-        <div class="field">
+        <div class="form-group">
           <label>Challenges, constraints, tradeoffs</label>
-          <textarea v-model="local.challenges" rows="2" placeholder="What was hard? What tradeoffs did you navigate?" />
+          <textarea v-model="ctx.contributions.challenges_constraints_tradeoffs" placeholder="Technical challenges you navigated..." />
         </div>
-        <div class="field">
+        <div class="form-group">
           <label>Outcomes and impact</label>
-          <textarea v-model="local.outcomes" rows="2" placeholder="What shipped? Metrics, user impact, delivery results" />
+          <textarea v-model="ctx.contributions.outcomes_impact" placeholder="What improved as a result of your work?" />
         </div>
       </div>
-    </section>
+    </details>
   </div>
 </template>
 
 <script setup>
-import { reactive, watch } from 'vue'
+import { ref, watch } from 'vue'
 
 const props = defineProps({ modelValue: { type: Object, required: true } })
 const emit = defineEmits(['update:modelValue'])
 
-const bgOpen = defineModel('bgOpen', { default: false })
-const contribOpen = defineModel('contribOpen', { default: true })
+const ctx = ref(props.modelValue)
+const bgOpen = ref(false)
+const contribOpen = ref(true)
 
-const local = reactive({ ...props.modelValue })
-
-watch(local, val => emit('update:modelValue', { ...val }))
-watch(() => props.modelValue, val => Object.assign(local, val), { deep: true })
+watch(() => props.modelValue, (v) => { ctx.value = v }, { deep: true })
+watch(ctx, (v) => emit('update:modelValue', v), { deep: true })
 </script>
 
 <style scoped>
-.context-form { display: flex; flex-direction: column; gap: 4px; }
-
-.section-toggle {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 8px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text);
-  text-align: left;
+.accordion { border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 8px; }
+.accordion-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 12px;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 600; font-size: 13px;
+  user-select: none;
 }
-.section-toggle em { font-style: normal; color: var(--text-muted); font-weight: 400; }
-.section-toggle:hover { background: #e8eef5; }
-
-.chevron { transition: transform 0.2s; display: inline-block; }
-.chevron.open { transform: rotate(90deg); }
-
-.section-body { display: flex; flex-direction: column; gap: 10px; padding: 12px 4px 8px; }
-.field { display: flex; flex-direction: column; gap: 4px; }
+.accordion-header::-webkit-details-marker { display: none; }
+.accordion-body { padding: 0 12px 12px; }
+.chevron { font-size: 10px; color: var(--text-muted); }
 </style>

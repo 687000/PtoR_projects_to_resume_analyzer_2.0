@@ -2,7 +2,6 @@
 
 **Feature:** Tailored Resume Content View and Editor
 **Page:** Resume Page — Detail View
-**Last updated:** 2026-04-03
 
 ---
 
@@ -96,7 +95,9 @@ Addresses: [Vue 3] [TypeScript]
 - **Drag handle:** Left of each bullet row for reordering within a project section
 - **Project section drag:** Header row has a drag handle for reordering project sections
 - **"+ Add bullet":** Opens an empty editable row; user can type a custom bullet or pick from the full `resume_bullets[]` list for that project via a dropdown
+- **"Generate Bullets" button:** Per project section — triggers Stage 3 (LLM generation using `jd-tailored-bullets-prompt`). Generates 2-3 new tailored bullets that address JD requirements while tracing back to project evidence. Only available when `ANTHROPIC_API_KEY` is set. Generated bullets are appended to the list with `source: 'generated'` and include detailed metadata (addresses, source_references, reasoning).
 - **Requirement tags:** Each tag is clickable — clicking highlights which bullets address that requirement
+- **Seniority fit badge:** Displayed in the JD summary panel — shows `meets` / `partial` / `below` with the `seniority_fit_reason` as a tooltip
 
 ### JD Summary Panel
 
@@ -120,22 +121,37 @@ JDTarget
 ├── company                   (extracted or null)
 ├── raw_jd_text               (full extracted source text)
 ├── source_metadata           (filename | url | pages | size)
+├── seniority_fit             ('meets' | 'partial' | 'below')
+├── seniority_fit_reason      (string — one sentence explanation)
 ├── extracted_requirements
 │   ├── tech_stack[]          (string[])
 │   ├── collaboration[]       (string[])
 │   ├── domain[]              (string[])
-│   └── seniority[]           (string[])
+│   └── seniority_requirement
+│       ├── min_years         (int | null)
+│       ├── expected_level    ('junior' | 'junior-mid' | 'mid' | 'senior' | 'lead' | 'principal' | 'not_stated')
+│       └── ownership_signals[] (string[])
 ├── matched_projects[]
 │   ├── project_id            (ref to Project entity)
 │   ├── fit_score             (0–100)
-│   ├── addressed_requirements[] (subset of extracted_requirements)
+│   ├── fit_reason            (string — one sentence from LLM, or empty in fallback)
+│   ├── addressed_requirements[] (subset of tech_stack + domain + collaboration)
 │   └── tailored_bullets[]
-│       ├── text              (string)
+│       ├── bullet            (string — the resume bullet text)
 │       ├── included          (bool — pinned for export)
-│       ├── source            ('generated' | 'user')
-│       └── order             (int)
+│       ├── source            ('selected' | 'generated')
+│       ├── addresses         (array — ['tech_stack', 'domain', 'collaboration', 'seniority'])
+│       ├── source_references (array — evidence links to project content)
+│       ├── reasoning         (string — why this bullet addresses JD requirements)
+│       └── order             (int — display order)
 └── last_exported_at          (ISO 8601 UTC | null)
 ```
+
+**Notes:**
+- `seniority_fit` and `seniority_fit_reason` are computed once per JD by comparing the JD's `seniority_requirement` against `data/user_profile.json`. They are not re-evaluated per project.
+- `tailored_bullets` contains bullets **selected from existing project content** during initial matching (Stage 2). New bullets generated on demand via "Generate Bullets" (Stage 3) are appended with `source: 'generated'` and include detailed metadata.
+- `fit_score` reflects tech + domain + collaboration match only — seniority is not part of per-project scoring.
+- Generated bullets use the `jd-tailored-bullets-prompt` and require `ANTHROPIC_API_KEY` to be configured.
 
 ### Key Components
 

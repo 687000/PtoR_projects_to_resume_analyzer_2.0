@@ -2,7 +2,6 @@
 
 **Feature:** Project Upload and Analysis
 **Page:** Projects Page
-**Last updated:** 2026-04-04
 
 ---
 

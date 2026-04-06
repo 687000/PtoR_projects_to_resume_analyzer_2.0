@@ -2,7 +2,6 @@
 
 **Feature:** Project Detail View and Resume Bullet Editing
 **Page:** Projects Page — Detail Modal
-**Last updated:** 2026-04-04
 
 ---
 
@@ -43,7 +42,7 @@ Bullets are editable directly inside the **Resume Bullets** tab without entering
 
 | Tab | Content |
 |---|---|
-| **Source & Context** | Raw extracted text + all 9 context form fields as provided |
+| **Source & Context** | Raw extracted text + context form fields as provided |
 | **Summary** | Summary, ownership description, self-introduction |
 | **Highlights** | Technical highlights list |
 | **Resume Bullets** | Editable bullet list — see §4 |
@@ -122,5 +121,4 @@ editBulletText: string            — current draft text
 
 - Drag-and-drop bullet reordering
 - Edit history per bullet — undo back to AI-generated original
-- Role-aligned bullet variants (Vue developer vs. middle office framing)
 - Copy all included bullets to clipboard

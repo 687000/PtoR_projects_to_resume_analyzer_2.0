@@ -2,7 +2,6 @@
 
 **Feature:** Job Target / Resume Content Management
 **Page:** Resume Page
-**Last updated:** 2026-04-03
 
 ---
 

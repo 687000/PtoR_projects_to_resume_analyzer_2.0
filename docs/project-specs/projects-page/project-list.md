@@ -2,34 +2,6 @@
 
 **Feature:** Project Asset/Content Management
 **Page:** Projects Page
-**Last updated:** 2026-04-03
-
----
-
-## MVP Implementation Status (Python CLI)
-
-The current implementation is a Python CLI. The Vue 3 UI described below is the target design.
-
-**Implemented commands:**
-```bash
-# Upload and analyze a project
-python -m src.cli upload --file project.pdf
-python -m src.cli upload --file project.txt
-python -m src.cli upload --text "paste project description here"
-
-# List all saved projects
-python -m src.cli list
-```
-
-**Upload flow:**
-1. Parse input (plain text or PDF → `src/parser.py`)
-2. Prompt user for structured context form (background vs. contributions)
-3. Run analysis via LLM — classification, tagging, output generation (`src/analyzer.py`)
-4. Display results and confirm save
-5. Save to `data/projects.json` (`src/store.py`)
-
-**Project store:** `data/projects.json` — append-only JSON list.  
-Each record includes: `id`, `created_at`, `title`, `category`, `tags`, `summary`, `ownership_description`, `technical_highlights`, `resume_bullets`, `interview_answer`, `self_intro`, `talking_points`, `context`, `raw_text`, `source_metadata`.
 
 ---
 

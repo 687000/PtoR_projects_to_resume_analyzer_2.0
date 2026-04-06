@@ -1,203 +1,153 @@
 import os
 import re
+import uuid
 from pathlib import Path
+from typing import Optional
 
-import pdfplumber
-import pytesseract
 import requests
 from bs4 import BeautifulSoup
-from PIL import Image
 
 
-def parse_input(source: str) -> dict:
-    """
-    Normalize a source (file path, URL, or plain text) into raw_text + metadata.
-
-    Returns:
-        { raw_text: str, source_type: str, metadata: dict }
-    """
-    # URL — check before file path lookup
-    if source.startswith("http://") or source.startswith("https://"):
-        if "notion.so" in source or "notion.site" in source:
-            return _parse_notion(source)
-        return _parse_url(source)
-
-    path = Path(source)
-
-    if len(source) <= 1024 and path.exists() and path.is_file():
-        suffix = path.suffix.lower()
-        if suffix == ".pdf":
-            return _parse_pdf(path)
-        elif suffix in (".txt", ".md"):
-            return _parse_text_file(path)
-        elif suffix in (".html", ".htm"):
-            return _parse_html_file(path)
-        elif suffix in (".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp"):
-            return _parse_image(path)
-        else:
-            raise ValueError(
-                f"Unsupported file type '{suffix}'. Supported: .pdf, .txt, .md, .html, .jpg, .png"
-            )
-
-    if not source.strip():
-        raise ValueError("Input text is empty.")
-
+def _make_segment(text: str, page: int = 1, section: str = "", offset_start: int = 0) -> dict:
     return {
-        "raw_text": source,
-        "source_type": "text",
-        "metadata": {},
+        "segment_id": str(uuid.uuid4()),
+        "text": text,
+        "location": {
+            "page": page,
+            "section": section,
+            "offset_start": offset_start,
+            "offset_end": offset_start + len(text),
+        },
     }
 
 
-def _parse_pdf(path: Path) -> dict:
+def _result(raw_text: str, source_type: str, source_reference: str, metadata: dict, segments: list) -> dict:
+    return {
+        "source_type": source_type,
+        "raw_text": raw_text,
+        "source_reference": source_reference,
+        "metadata": metadata,
+        "provenance": {"segments": segments},
+    }
+
+
+def parse_text(text: str) -> dict:
+    segments = [_make_segment(text)]
+    return _result(text, "text", "", {}, segments)
+
+
+def parse_files(paths: list) -> dict:
+    """Parse multiple files and merge into a single source dict."""
+    if len(paths) == 1:
+        return parse_file(paths[0])
+    all_texts = []
+    all_segments = []
+    all_filenames = []
+    for path in paths:
+        result = parse_file(path)
+        all_texts.append(result["raw_text"])
+        all_segments.extend(result["provenance"]["segments"])
+        all_filenames.append(result["metadata"].get("filename", Path(path).name))
+    raw_text = "\n\n---\n\n".join(all_texts)
+    return _result(
+        raw_text,
+        "file",
+        ", ".join(all_filenames),
+        {"filenames": all_filenames, "file_count": len(paths)},
+        all_segments,
+    )
+
+
+def parse_file(path: str) -> dict:
+    p = Path(path)
+    suffix = p.suffix.lower()
+
+    if suffix == ".pdf":
+        return _parse_pdf(path)
+    if suffix in (".txt", ".md"):
+        text = p.read_text(encoding="utf-8", errors="replace")
+        return _result(text, "file", p.name, {"filename": p.name}, [_make_segment(text)])
+    if suffix in (".html", ".htm"):
+        html = p.read_text(encoding="utf-8", errors="replace")
+        return _parse_html_text(html, p.name, "file")
+    if suffix in (".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp"):
+        return _parse_image(path)
+    raise ValueError(f"Unsupported file type: {suffix}")
+
+
+def _parse_pdf(path: str) -> dict:
+    import pdfplumber
+
+    p = Path(path)
+    segments = []
+    pages_text = []
     with pdfplumber.open(path) as pdf:
-        pages = [page.extract_text() or "" for page in pdf.pages]
-
-    raw_text = "\n\n".join(p for p in pages if p.strip())
-
-    if not raw_text.strip():
-        raise ValueError(f"No extractable text found in PDF: {path.name}")
-
-    return {
-        "raw_text": raw_text,
-        "source_type": "pdf",
-        "metadata": {"filename": path.name, "pages": len(pages)},
-    }
+        for i, page in enumerate(pdf.pages, start=1):
+            text = page.extract_text() or ""
+            pages_text.append(text)
+            if text.strip():
+                segments.append(_make_segment(text, page=i))
+    raw_text = "\n\n".join(pages_text)
+    return _result(raw_text, "file", p.name, {"filename": p.name, "pages": len(pages_text)}, segments)
 
 
-def _parse_text_file(path: Path) -> dict:
-    raw_text = path.read_text(encoding="utf-8")
+def _parse_image(path: str) -> dict:
+    import pytesseract
+    from PIL import Image
 
-    if not raw_text.strip():
-        raise ValueError(f"File is empty: {path.name}")
-
-    return {
-        "raw_text": raw_text,
-        "source_type": "text_file",
-        "metadata": {"filename": path.name},
-    }
+    p = Path(path)
+    img = Image.open(path)
+    text = pytesseract.image_to_string(img)
+    return _result(text, "file", p.name, {"filename": p.name, "ocr": True}, [_make_segment(text)])
 
 
-def _parse_html_file(path: Path) -> dict:
-    html = path.read_text(encoding="utf-8")
-    raw_text = _extract_text_from_html(html)
-
-    if not raw_text.strip():
-        raise ValueError(f"No readable text found in HTML file: {path.name}")
-
-    return {
-        "raw_text": raw_text,
-        "source_type": "html_file",
-        "metadata": {"filename": path.name},
-    }
-
-
-def _parse_image(path: Path) -> dict:
-    image = Image.open(path)
-    raw_text = pytesseract.image_to_string(image).strip()
-
-    if not raw_text:
-        raise ValueError(f"OCR produced no text from image: {path.name}")
-
-    return {
-        "raw_text": raw_text,
-        "source_type": "image_ocr",
-        "metadata": {"filename": path.name, "size": image.size},
-    }
-
-
-def _parse_url(url: str) -> dict:
-    try:
-        response = requests.get(url, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
-        response.raise_for_status()
-    except requests.RequestException as e:
-        raise ValueError(f"Failed to fetch URL: {e}")
-
-    raw_text = _extract_text_from_html(response.text)
-
-    if not raw_text.strip():
-        raise ValueError(f"No readable text found at URL: {url}")
-
-    return {
-        "raw_text": raw_text,
-        "source_type": "url",
-        "metadata": {"url": url},
-    }
-
-
-def _parse_notion(url: str) -> dict:
-    token = os.getenv("NOTION_TOKEN")
-    if not token:
-        raise ValueError(
-            "NOTION_TOKEN environment variable not set. "
-            "Create a Notion integration at https://www.notion.so/my-integrations and share the page with it."
-        )
-
-    page_id = _extract_notion_page_id(url)
-    if not page_id:
-        raise ValueError(f"Could not extract page ID from Notion URL: {url}")
-
-    raw_text = _fetch_notion_page_text(page_id, token)
-
-    if not raw_text.strip():
-        raise ValueError(f"No readable content found in Notion page: {url}")
-
-    return {
-        "raw_text": raw_text,
-        "source_type": "notion",
-        "metadata": {"url": url, "page_id": page_id},
-    }
-
-
-def _extract_notion_page_id(url: str) -> str | None:
-    # Notion page IDs are 32 hex chars, may appear with or without dashes
-    match = re.search(r"([0-9a-f]{32})", url.replace("-", ""))
-    if match:
-        raw = match.group(1)
-        # Format as UUID: 8-4-4-4-12
-        return f"{raw[:8]}-{raw[8:12]}-{raw[12:16]}-{raw[16:20]}-{raw[20:]}"
-    return None
-
-
-def _fetch_notion_page_text(page_id: str, token: str) -> str:
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Notion-Version": "2022-06-28",
-    }
-
-    def get_blocks(block_id: str) -> list[dict]:
-        url = f"https://api.notion.com/v1/blocks/{block_id}/children"
-        try:
-            resp = requests.get(url, headers=headers, timeout=15)
-            resp.raise_for_status()
-            return resp.json().get("results", [])
-        except requests.RequestException:
-            return []
-
-    def extract_text(blocks: list[dict]) -> str:
-        lines = []
-        for block in blocks:
-            btype = block.get("type", "")
-            content = block.get(btype, {})
-            rich_texts = content.get("rich_text", [])
-            text = "".join(rt.get("plain_text", "") for rt in rich_texts)
-            if text:
-                lines.append(text)
-            if block.get("has_children"):
-                child_blocks = get_blocks(block["id"])
-                lines.append(extract_text(child_blocks))
-        return "\n".join(lines)
-
-    blocks = get_blocks(page_id)
-    return extract_text(blocks)
-
-
-def _extract_text_from_html(html: str) -> str:
+def _parse_html_text(html: str, reference: str, source_type: str) -> dict:
     soup = BeautifulSoup(html, "html.parser")
-
     for tag in soup(["script", "style", "nav", "footer", "header"]):
         tag.decompose()
+    container = soup.find("article") or soup.find("main") or soup.body or soup
+    text = container.get_text(separator="\n", strip=True)
+    text = re.sub(r"\n{3,}", "\n\n", text).strip()
+    return _result(text, source_type, reference, {}, [_make_segment(text)])
 
-    # Prefer article or main content if available
-    main = soup.find("article") or soup.find("main") or soup.find("body") or soup
-    return main.get_text(separator="\n", strip=True)
+
+def parse_url(url: str) -> dict:
+    _validate_url(url)
+    resp = requests.get(url, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
+    resp.raise_for_status()
+    return _parse_html_text(resp.text, url, "url")
+
+
+def parse_notion(url: str, token: Optional[str] = None) -> dict:
+    token = token or os.environ.get("NOTION_TOKEN", "")
+    if not token:
+        raise RuntimeError("NOTION_TOKEN not set")
+    page_id = _extract_notion_page_id(url)
+    headers = {"Authorization": f"Bearer {token}", "Notion-Version": "2022-06-28"}
+    blocks_url = f"https://api.notion.com/v1/blocks/{page_id}/children?page_size=100"
+    resp = requests.get(blocks_url, headers=headers, timeout=15)
+    resp.raise_for_status()
+    data = resp.json()
+    texts = []
+    for block in data.get("results", []):
+        bt = block.get("type", "")
+        rich = block.get(bt, {}).get("rich_text", [])
+        line = "".join(r.get("plain_text", "") for r in rich)
+        if line.strip():
+            texts.append(line)
+    raw_text = "\n".join(texts)
+    segments = [_make_segment(t, section=str(i)) for i, t in enumerate(texts)]
+    return _result(raw_text, "notion", url, {"page_id": page_id}, segments)
+
+
+def _extract_notion_page_id(url: str) -> str:
+    match = re.search(r"([a-f0-9]{32})", url.replace("-", ""))
+    if not match:
+        raise ValueError(f"Cannot extract Notion page ID from URL: {url}")
+    raw = match.group(1)
+    return f"{raw[:8]}-{raw[8:12]}-{raw[12:16]}-{raw[16:20]}-{raw[20:]}"
+
+
+def _validate_url(url: str) -> None:
+    if not re.match(r"^https?://", url):
+        raise ValueError(f"Invalid URL: {url}")

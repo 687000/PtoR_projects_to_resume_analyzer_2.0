@@ -1,197 +1,141 @@
 import { defineStore } from 'pinia'
-import * as api from '../api/client'
+import { ref } from 'vue'
+import { projectsApi } from '../api/client'
 
-const emptyContext = () => ({
-  business_background: '',
-  team_client_requirements: '',
-  pm_decisions: '',
-  t1_responsibilities: '',
-  t2_responsibilities: '',
-  architecture_details: '',
-  coordination: '',
-  challenges: '',
-  outcomes: '',
-})
+export const useProjectStore = defineStore('projects', () => {
+  const list = ref([])
+  const loading = ref(false)
+  const error = ref(null)
 
-export const useProjectStore = defineStore('projects', {
-  state: () => ({
-    projects: [],
-    loading: false,
-    error: null,
+  // Upload panel state
+  const upload = ref({
+    open: false,
+    activeTab: 'text',
+    text: '',
+    url: '',
+    notionUrl: '',
+    files: [],
+    context: defaultContext(),
+    analyzing: false,
+    analyzeError: null,
+    result: null,      // { source, title, category, tags, analysis }
+    sourcePreview: '',
+  })
 
-    upload: {
-      open: false,
-      activeTab: 'text',
-      source: '',
-      files: [],
-      context: emptyContext(),
-      analyzing: false,
-      result: null,
-      analyzeError: null,
-    },
+  // Modal state
+  const modal = ref({
+    open: false,
+    project: null,
+  })
 
-    modal: {
-      open: false,
-      project: null,
-      editing: false,
-      editContext: emptyContext(),
-      reanalyzing: false,
-      deleteConfirm: false,
-    },
+  function defaultContext() {
+    return {
+      background: {
+        business_background: '',
+        team_client_requirements: '',
+        pm_product_decisions: '',
+      },
+      contributions: {
+        t1_responsibilities: '',
+        t2_responsibilities: '',
+        architecture_details: '',
+        cross_functional_coordination: '',
+        challenges_constraints_tradeoffs: '',
+        outcomes_impact: '',
+      },
+    }
+  }
 
-    search: {
-      query: '',
-      category: '',
-      tag: '',
-    },
-  }),
+  async function fetchProjects() {
+    loading.value = true
+    error.value = null
+    try {
+      list.value = await projectsApi.list()
+    } catch (e) {
+      error.value = e.message
+    } finally {
+      loading.value = false
+    }
+  }
 
-  getters: {
-    filteredProjects(state) {
-      const q = state.search.query.toLowerCase()
-      const cat = state.search.category
-      const tag = state.search.tag
-      return state.projects.filter(p => {
-        if (cat && p.category !== cat) return false
-        if (tag && !p.tags?.includes(tag)) return false
-        if (q) {
-          const haystack = `${p.title} ${p.summary} ${p.tags?.join(' ')}`.toLowerCase()
-          if (!haystack.includes(q)) return false
-        }
-        return true
-      })
-    },
-    allCategories(state) {
-      return [...new Set(state.projects.map(p => p.category).filter(Boolean))]
-    },
-    allTags(state) {
-      return [...new Set(state.projects.flatMap(p => p.tags || []))]
-    },
-  },
-
-  actions: {
-    async fetchAll() {
-      this.loading = true
-      this.error = null
-      try {
-        this.projects = await api.getProjects()
-      } catch (e) {
-        this.error = e.message
-      } finally {
-        this.loading = false
+  async function analyzeProject() {
+    const u = upload.value
+    u.analyzing = true
+    u.analyzeError = null
+    u.result = null
+    try {
+      let res
+      if (u.activeTab === 'files' && u.files.length > 0) {
+        res = await projectsApi.analyzeFile(u.files, u.context)
+      } else if (u.activeTab === 'url') {
+        res = await projectsApi.analyzeText('', u.url, '', u.context)
+      } else if (u.activeTab === 'notion') {
+        res = await projectsApi.analyzeText('', '', u.notionUrl, u.context)
+      } else {
+        res = await projectsApi.analyzeText(u.text, '', '', u.context)
       }
-    },
+      u.result = res
+      u.sourcePreview = res.source?.raw_text || ''
+    } catch (e) {
+      u.analyzeError = e.message
+    } finally {
+      u.analyzing = false
+    }
+  }
 
-    async analyze() {
-      this.upload.analyzing = true
-      this.upload.analyzeError = null
-      this.upload.result = null
-      try {
-        const ctx = this.upload.context
-        if (this.upload.activeTab === 'file') {
-          if (!this.upload.files.length) throw new Error('No file selected')
-          this.upload.result = await api.analyzeFile(this.upload.files, ctx)
-        } else {
-          if (!this.upload.source.trim()) throw new Error('Input is empty')
-          this.upload.result = await api.analyzeSource(this.upload.source.trim(), ctx)
-        }
-      } catch (e) {
-        this.upload.analyzeError = e.message
-      } finally {
-        this.upload.analyzing = false
-      }
-    },
+  async function saveProject() {
+    const u = upload.value
+    if (!u.result) return
+    const saved = await projectsApi.save(u.result.source, u.context, u.result)
+    list.value.unshift(saved)
+    resetUpload()
+    return saved
+  }
 
-    async saveAnalysis() {
-      const r = this.upload.result
-      if (!r) return
-      this.loading = true
-      try {
-        const { raw_text, source_metadata, ...analysis } = r
-        const saved = await api.saveProject(analysis, raw_text, source_metadata || {})
-        this.projects.unshift(saved)
-        this.resetUpload()
-      } catch (e) {
-        this.upload.analyzeError = e.message
-      } finally {
-        this.loading = false
-      }
-    },
+  function resetUpload() {
+    const u = upload.value
+    u.open = false
+    u.activeTab = 'text'
+    u.text = ''
+    u.url = ''
+    u.notionUrl = ''
+    u.files = []
+    u.context = defaultContext()
+    u.analyzing = false
+    u.analyzeError = null
+    u.result = null
+    u.sourcePreview = ''
+  }
 
-    resetUpload() {
-      this.upload.open = false
-      this.upload.activeTab = 'text'
-      this.upload.source = ''
-      this.upload.files = []
-      this.upload.context = emptyContext()
-      this.upload.result = null
-      this.upload.analyzeError = null
-      this.upload.analyzing = false
-    },
+  async function updateBullets(projectId, bullets) {
+    const updated = await projectsApi.update(projectId, {
+      resume_bullets: bullets,
+      reanalyze: false,
+    })
+    const idx = list.value.findIndex(p => p.id === projectId)
+    if (idx !== -1) list.value[idx] = updated
+    return updated
+  }
 
-    openModal(project) {
-      this.modal.project = { ...project }
-      this.modal.editing = false
-      this.modal.editContext = { ...(project.context || emptyContext()) }
-      this.modal.deleteConfirm = false
-      this.modal.open = true
-    },
+  async function deleteProject(projectId) {
+    await projectsApi.delete(projectId)
+    list.value = list.value.filter(p => p.id !== projectId)
+  }
 
-    closeModal() {
-      this.modal.open = false
-      this.modal.project = null
-      this.modal.editing = false
-      this.modal.deleteConfirm = false
-      this.modal.reanalyzing = false
-    },
+  function openModal(project) {
+    modal.value.open = true
+    modal.value.project = project
+  }
 
-    async reanalyze() {
-      if (!this.modal.project) return
-      this.modal.reanalyzing = true
-      try {
-        const updated = await api.patchProject(
-          this.modal.project.id,
-          this.modal.editContext,
-          true,
-        )
-        this.modal.project = { ...updated }
-        this.modal.editing = false
-        const idx = this.projects.findIndex(p => p.id === updated.id)
-        if (idx !== -1) this.projects[idx] = updated
-      } catch (e) {
-        this.error = e.message
-      } finally {
-        this.modal.reanalyzing = false
-      }
-    },
+  function closeModal() {
+    modal.value.open = false
+    modal.value.project = null
+  }
 
-    async saveBullets(bullets) {
-      if (!this.modal.project) return
-      const updated = await api.patchProject(
-        this.modal.project.id,
-        this.modal.project.context || {},
-        false,
-        bullets,
-      )
-      this.modal.project = { ...updated }
-      const idx = this.projects.findIndex(p => p.id === updated.id)
-      if (idx !== -1) this.projects[idx] = updated
-    },
-
-    reorderProjects(sourceId, targetId) {
-      const sourceIndex = this.projects.findIndex(p => p.id === sourceId)
-      const targetIndex = this.projects.findIndex(p => p.id === targetId)
-      if (sourceIndex === -1 || targetIndex === -1 || sourceIndex === targetIndex) return
-
-      const [moved] = this.projects.splice(sourceIndex, 1)
-      const insertIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex
-      this.projects.splice(insertIndex, 0, moved)
-    },
-
-    async deleteProject(id) {
-      await api.deleteProject(id)
-      this.projects = this.projects.filter(p => p.id !== id)
-      if (this.modal.project?.id === id) this.closeModal()
-    },
-  },
+  return {
+    list, loading, error, upload, modal,
+    fetchProjects, analyzeProject, saveProject, resetUpload,
+    updateBullets, deleteProject, openModal, closeModal,
+    defaultContext,
+  }
 })

@@ -1,166 +1,61 @@
 <template>
-  <div class="grid-section">
-    <div class="toolbar">
-      <input
-        type="text"
-        class="search-input"
-        v-model="store.search.query"
-        placeholder="Search projects…"
-      />
-      <select v-model="store.search.category" class="filter-select">
+  <div>
+    <!-- Search & filters -->
+    <div class="filters mb-16">
+      <input v-model="search" placeholder="Search projects…" style="max-width:280px;" />
+      <select v-model="filterCategory" style="max-width:160px;">
         <option value="">All categories</option>
-        <option v-for="cat in store.allCategories" :key="cat" :value="cat">{{ cat }}</option>
+        <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
       </select>
-      <select v-model="store.search.tag" class="filter-select">
-        <option value="">All tags</option>
-        <option v-for="tag in store.allTags" :key="tag" :value="tag">{{ tag.replace(/_/g, ' ') }}</option>
-      </select>
-      <span class="count">{{ store.filteredProjects.length }} project{{ store.filteredProjects.length !== 1 ? 's' : '' }}</span>
     </div>
 
-    <div v-if="store.loading && !store.projects.length" class="loading">Loading…</div>
-
-    <div v-else-if="!store.projects.length" class="empty">
-      <p>No projects yet.</p>
-      <button class="btn-primary" @click="store.upload.open = true">Add your first project</button>
+    <div v-if="store.loading" class="flex-center" style="padding:40px; justify-content:center;">
+      <span class="spinner" /> Loading…
     </div>
 
-    <div v-else-if="!store.filteredProjects.length" class="empty">
-      <p>No projects match your search.</p>
-      <button class="btn-secondary" @click="clearFilters">Clear filters</button>
+    <div v-else-if="!filtered.length" class="empty-state">
+      <h3>No projects yet</h3>
+      <p>Upload a project above to get started.</p>
     </div>
 
-    <div v-else class="grid">
-      <div
-        v-for="p in store.filteredProjects"
-        :key="p.id"
-        class="draggable-card"
-        :class="{
-          dragging: draggedProjectId === p.id,
-          'drag-over': draggedOverProjectId === p.id,
-        }"
-        draggable="true"
-        @dragstart="onDragStart($event, p)"
-        @dragover="onDragOver($event, p)"
-        @drop="onDrop($event, p)"
-        @dragleave="onDragLeave($event, p)"
-        @dragend="onDragEnd"
-      >
-        <ProjectCard :project="p" />
-      </div>
+    <div v-else class="grid-2">
+      <ProjectCard v-for="p in filtered" :key="p.id" :project="p" />
     </div>
+
+    <ProjectModal />
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useProjectStore } from '../stores/projects'
 import ProjectCard from './ProjectCard.vue'
+import ProjectModal from './ProjectModal.vue'
 
 const store = useProjectStore()
-const draggedProjectId = ref(null)
-const draggedOverProjectId = ref(null)
+const search = ref('')
+const filterCategory = ref('')
+const categories = ['web_app', 'mobile', 'backend', 'data', 'devops', 'platform', 'other']
 
-function clearFilters() {
-  store.search.query = ''
-  store.search.category = ''
-  store.search.tag = ''
-}
+onMounted(() => store.fetchProjects())
 
-function onDragStart(event, project) {
-  draggedProjectId.value = project.id
-  event.dataTransfer.effectAllowed = 'move'
-}
-
-function onDragOver(event, project) {
-  event.preventDefault()
-  if (draggedProjectId.value === project.id) return
-  draggedOverProjectId.value = project.id
-  event.dataTransfer.dropEffect = 'move'
-}
-
-function onDrop(event, project) {
-  event.preventDefault()
-  if (!draggedProjectId.value || draggedProjectId.value === project.id) {
-    draggedProjectId.value = null
-    draggedOverProjectId.value = null
-    return
+const filtered = computed(() => {
+  let list = store.list
+  if (filterCategory.value) {
+    list = list.filter(p => p.category === filterCategory.value)
   }
-
-  store.reorderProjects(draggedProjectId.value, project.id)
-  draggedProjectId.value = null
-  draggedOverProjectId.value = null
-}
-
-function onDragLeave(event, project) {
-  if (draggedOverProjectId.value === project.id) {
-    draggedOverProjectId.value = null
+  if (search.value.trim()) {
+    const q = search.value.toLowerCase()
+    list = list.filter(p =>
+      (p.title || '').toLowerCase().includes(q) ||
+      (p.analysis?.summary || '').toLowerCase().includes(q) ||
+      (p.tags || []).some(t => t.toLowerCase().includes(q))
+    )
   }
-}
-
-function onDragEnd() {
-  draggedProjectId.value = null
-  draggedOverProjectId.value = null
-}
+  return list
+})
 </script>
 
 <style scoped>
-.grid-section { display: flex; flex-direction: column; gap: 14px; }
-
-.toolbar {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.search-input {
-  flex: 1;
-  min-width: 200px;
-  max-width: 320px;
-}
-
-.filter-select {
-  font-family: inherit;
-  font-size: 13px;
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 7px 10px;
-  outline: none;
-  cursor: pointer;
-}
-.filter-select:focus { border-color: var(--primary); }
-
-.count { font-size: 12px; color: var(--text-muted); margin-left: auto; }
-
-.loading, .empty {
-  text-align: center;
-  color: var(--text-muted);
-  padding: 48px 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 14px;
-}
-
-.draggable-card {
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.draggable-card.drag-over {
-  transform: scale(1.01);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.18);
-}
-
-.draggable-card.dragging {
-  opacity: 0.6;
-}
+.filters { display: flex; gap: 10px; flex-wrap: wrap; }
 </style>

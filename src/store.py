@@ -2,48 +2,68 @@ import json
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional
 
-STORE_PATH = Path("data/projects.json")
+DATA_FILE = Path(__file__).parent.parent / "data" / "projects.json"
 
 
-def load_projects() -> list[dict]:
-    if not STORE_PATH.exists():
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _load() -> list:
+    if not DATA_FILE.exists():
         return []
-    return json.loads(STORE_PATH.read_text(encoding="utf-8"))
+    text = DATA_FILE.read_text(encoding="utf-8").strip()
+    if not text:
+        return []
+    return json.loads(text)
+
+
+def _save(projects: list) -> None:
+    DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
+    DATA_FILE.write_text(json.dumps(projects, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def list_projects() -> list:
+    return _load()
+
+
+def get_project(project_id: str) -> Optional[dict]:
+    for p in _load():
+        if p.get("id") == project_id:
+            return p
+    return None
 
 
 def save_project(project: dict) -> dict:
-    projects = load_projects()
-    project["id"] = str(uuid.uuid4())
-    project["created_at"] = datetime.now(timezone.utc).isoformat()
-    projects.append(project)
-    _write(projects)
+    projects = _load()
+    now = _now()
+    if not project.get("id"):
+        project["id"] = str(uuid.uuid4())
+    project.setdefault("created_at", now)
+    project["updated_at"] = now
+    projects.insert(0, project)
+    _save(projects)
     return project
 
 
-def get_project(project_id: str) -> dict | None:
-    return next((p for p in load_projects() if p["id"] == project_id), None)
-
-
-def update_project(project_id: str, fields: dict) -> dict | None:
-    projects = load_projects()
+def update_project(project_id: str, updates: dict) -> Optional[dict]:
+    projects = _load()
     for i, p in enumerate(projects):
-        if p["id"] == project_id:
-            projects[i] = {**p, **fields, "updated_at": datetime.now(timezone.utc).isoformat()}
-            _write(projects)
-            return projects[i]
+        if p.get("id") == project_id:
+            p.update(updates)
+            p["updated_at"] = _now()
+            projects[i] = p
+            _save(projects)
+            return p
     return None
 
 
 def delete_project(project_id: str) -> bool:
-    projects = load_projects()
-    new_list = [p for p in projects if p["id"] != project_id]
+    projects = _load()
+    new_list = [p for p in projects if p.get("id") != project_id]
     if len(new_list) == len(projects):
         return False
-    _write(new_list)
+    _save(new_list)
     return True
-
-
-def _write(projects: list[dict]) -> None:
-    STORE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    STORE_PATH.write_text(json.dumps(projects, indent=2, ensure_ascii=False), encoding="utf-8")

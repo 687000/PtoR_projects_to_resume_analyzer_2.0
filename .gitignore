@@ -1,17 +1,14 @@
-# Python
+.env
 __pycache__/
 *.pyc
 *.pyo
+.pytest_cache/
 *.egg-info/
+dist/
+build/
 .venv/
 venv/
-
-# Environment
-.env
-
-# Frontend
-frontend/node_modules/
+node_modules/
 frontend/dist/
-
-# macOS
+*.tmp
 .DS_Store

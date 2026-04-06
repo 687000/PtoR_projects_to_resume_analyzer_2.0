@@ -1,210 +1,126 @@
 <template>
-  <div class="jd-list-section">
-    <div class="toolbar">
-      <input
-        type="text"
-        class="search-input"
-        v-model="query"
-        placeholder="Search job targets…"
-      />
-      <span class="count">{{ filtered.length }} target{{ filtered.length !== 1 ? 's' : '' }}</span>
+  <div>
+    <div v-if="store.loading" class="flex-center" style="padding:40px; justify-content:center;">
+      <span class="spinner" /> Loading…
     </div>
 
-    <div v-if="store.loading && !store.targets.length" class="empty">Loading…</div>
-
-    <div v-else-if="!store.targets.length" class="empty">
-      <p>No job targets yet.</p>
-      <button class="btn-primary" @click="store.upload.open = true">Add your first job target</button>
+    <div v-else-if="!store.list.length" class="empty-state">
+      <h3>No job targets yet</h3>
+      <p>Upload a job description above to generate tailored resume content.</p>
     </div>
 
-    <div v-else-if="!filtered.length" class="empty">
-      <p>No targets match your search.</p>
-      <button class="btn-secondary" @click="query = ''">Clear</button>
-    </div>
-
-    <div v-else class="grid">
+    <div v-else class="grid-2">
       <div
-        v-for="t in filtered"
-        :key="t.id"
-        class="card"
-        @click="store.openModal(t)"
+        v-for="jd in store.list"
+        :key="jd.id"
+        class="card jd-card"
       >
-        <div class="card-header">
-          <span class="date">{{ formatDate(t.created_at) }}</span>
-          <span v-if="t.updated_at" class="updated-badge">updated</span>
-        </div>
-
-        <div class="card-title">
-          <span class="role">{{ t.role_title }}</span>
-          <span v-if="t.company" class="company">{{ t.company }}</span>
-        </div>
-
-        <div class="match-summary">
-          <span v-if="bestScore(t)" class="fit-badge" :class="fitClass(bestScore(t))">
-            Best match: {{ bestScore(t) }}%
+        <div class="flex-between mb-8">
+          <div>
+            <div style="font-weight:700; font-size:14px;">{{ jd.title || 'Untitled Role' }}</div>
+            <div class="text-muted text-small">{{ jd.company || 'Unknown company' }} · {{ formatDate(jd.created_at) }}</div>
+          </div>
+          <span class="score-badge" :class="scoreClass(bestScore(jd))">
+            {{ bestScore(jd) > 0 ? bestScore(jd) + '%' : '—' }}
           </span>
-          <span class="match-count">{{ t.matched_projects?.length || 0 }} project{{ (t.matched_projects?.length || 0) !== 1 ? 's' : '' }} matched</span>
         </div>
 
-        <div class="req-chips">
-          <span v-for="kw in topRequirements(t)" :key="kw" class="req-chip">{{ kw }}</span>
+        <div class="tags mb-8">
+          <span v-for="t in topTech(jd)" :key="t" class="chip">{{ t }}</span>
         </div>
 
-        <div class="card-actions" @click.stop>
-          <button class="btn-ghost" @click="store.openModal(t)">View Resume</button>
-          <button
-            class="btn-ghost"
-            :disabled="rematching === t.id"
-            @click="doRematch(t.id)"
-          >
-            <span v-if="rematching === t.id" class="spinner dark" />
-            <span v-else>Re-match</span>
+        <div class="text-small text-muted mb-12">
+          {{ matchCount(jd) }} project{{ matchCount(jd) !== 1 ? 's' : '' }} matched
+          <span v-if="jd.seniority_fit" class="ml-8">
+            · Seniority: <span :class="fitClass(jd.seniority_fit)">{{ jd.seniority_fit }}</span>
+          </span>
+        </div>
+
+        <div class="flex-center gap-8">
+          <button class="btn-primary" style="font-size:12px; padding:4px 12px;" @click="store.openDetail(jd)">View Resume</button>
+          <button class="btn-secondary" style="font-size:12px; padding:4px 10px;" :disabled="rematching === jd.id" @click="rematch(jd)">
+            <span v-if="rematching === jd.id"><span class="spinner" style="width:10px;height:10px;margin-right:4px;" /></span>
+            Re-match
           </button>
-          <button class="btn-ghost danger" @click.stop="confirmId = t.id">Delete</button>
-        </div>
-
-        <div v-if="confirmId === t.id" class="delete-confirm" @click.stop>
-          <span>Delete "{{ t.role_title }}"?</span>
-          <button class="btn-danger" @click="doDelete(t.id)">Yes, delete</button>
-          <button class="btn-secondary" @click="confirmId = null">Cancel</button>
+          <button class="btn-danger" style="font-size:12px; padding:4px 10px;" @click="del(jd)">Delete</button>
         </div>
       </div>
     </div>
+
+    <JDDetailModal />
+    <ResumeExportModal />
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useResumeStore } from '../stores/resume'
+import { useToast } from '../composables/toast'
+import JDDetailModal from './JDDetailModal.vue'
+import ResumeExportModal from './ResumeExportModal.vue'
 
 const store = useResumeStore()
-const query = ref('')
-const confirmId = ref(null)
+const toast = useToast()
 const rematching = ref(null)
 
-const filtered = computed(() => {
-  const q = query.value.toLowerCase()
-  if (!q) return store.sortedTargets
-  return store.sortedTargets.filter(t => {
-    const hay = `${t.role_title} ${t.company || ''} ${
-      (t.extracted_requirements?.tech_stack || []).join(' ')
-    }`.toLowerCase()
-    return hay.includes(q)
-  })
-})
-
-function bestScore(target) {
-  const projects = target.matched_projects || []
-  if (!projects.length) return null
-  return Math.max(...projects.map(p => p.fit_score))
-}
-
-function fitClass(score) {
-  if (score >= 80) return 'high'
-  if (score >= 60) return 'mid'
-  return 'low'
-}
-
-function topRequirements(target) {
-  const r = target.extracted_requirements || {}
-  return [...(r.tech_stack || []), ...(r.domain || [])].slice(0, 5)
-}
+onMounted(() => store.fetchJdTargets())
 
 function formatDate(iso) {
   if (!iso) return ''
-  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-async function doRematch(id) {
-  rematching.value = id
-  await store.rematch(id)
-  rematching.value = null
+function bestScore(jd) {
+  const projects = jd.match_results?.projects || []
+  if (!projects.length) return 0
+  return Math.max(...projects.map(p => p.fit_score || 0))
 }
 
-function doDelete(id) {
-  store.deleteTarget(id)
-  confirmId.value = null
+function matchCount(jd) {
+  return (jd.match_results?.projects || []).length
+}
+
+function topTech(jd) {
+  return (jd.extracted_requirements?.tech_stack || []).slice(0, 4)
+}
+
+function scoreClass(score) {
+  if (score >= 80) return 'score-high'
+  if (score >= 60) return 'score-mid'
+  return 'score-low'
+}
+
+function fitClass(fit) {
+  if (fit === 'meets') return 'text-accent'
+  if (fit === 'partial') return ''
+  return 'text-muted'
+}
+
+async function rematch(jd) {
+  rematching.value = jd.id
+  try {
+    await store.rematch(jd.id)
+    toast.success('Re-matched!')
+  } catch (e) {
+    toast.error(e.message)
+  } finally {
+    rematching.value = null
+  }
+}
+
+async function del(jd) {
+  if (!confirm(`Delete "${jd.title}"?`)) return
+  try {
+    await store.deleteJd(jd.id)
+    toast.success('Deleted')
+  } catch (e) {
+    toast.error(e.message)
+  }
 }
 </script>
 
 <style scoped>
-.jd-list-section { display: flex; flex-direction: column; gap: 14px; }
-
-.toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.search-input { flex: 1; min-width: 200px; max-width: 320px; }
-.count { font-size: 12px; color: var(--text-muted); margin-left: auto; }
-
-.empty {
-  text-align: center; color: var(--text-muted);
-  padding: 48px 24px;
-  display: flex; flex-direction: column; align-items: center; gap: 12px;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 14px;
-}
-
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px;
-  display: flex; flex-direction: column; gap: 10px;
-  cursor: pointer;
-  transition: box-shadow 0.15s, border-color 0.15s;
-  box-shadow: var(--shadow);
-}
-.card:hover { box-shadow: var(--shadow-md); border-color: #c7d7ed; }
-
-.card-header { display: flex; align-items: center; gap: 8px; }
-.date { font-size: 11px; color: var(--text-muted); }
-.updated-badge {
-  font-size: 10px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.04em;
-  background: #e0e7ff; color: #3730a3;
-  padding: 1px 6px; border-radius: 100px;
-}
-
-.card-title { display: flex; flex-direction: column; gap: 2px; }
-.role { font-size: 14px; font-weight: 600; line-height: 1.3; }
-.company { font-size: 12px; color: var(--text-muted); }
-
-.match-summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.fit-badge {
-  font-size: 11px; font-weight: 700;
-  padding: 2px 8px; border-radius: 100px;
-}
-.fit-badge.high { background: #dcfce7; color: #166534; }
-.fit-badge.mid  { background: #fef9c3; color: #854d0e; }
-.fit-badge.low  { background: #f1f5f9; color: #475569; }
-.match-count { font-size: 12px; color: var(--text-muted); }
-
-.req-chips { display: flex; flex-wrap: wrap; gap: 4px; }
-.req-chip {
-  font-size: 11px; font-weight: 500;
-  background: var(--tag-bg); color: var(--tag-text);
-  padding: 2px 8px; border-radius: 100px;
-}
-
-.card-actions {
-  display: flex; gap: 4px; margin-top: auto;
-  padding-top: 4px; border-top: 1px solid var(--border);
-}
-.btn-ghost { font-size: 12px; padding: 4px 10px; }
-.btn-ghost.danger:hover { color: var(--danger); }
-
-.delete-confirm {
-  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-  padding: 10px; background: #fff5f5;
-  border: 1px solid #fecaca; border-radius: 6px; font-size: 12px;
-}
-.delete-confirm span { flex: 1; color: var(--text); }
-.delete-confirm button { padding: 4px 10px; font-size: 12px; }
-
-.spinner.dark {
-  border-color: rgba(0,0,0,0.15);
-  border-top-color: var(--text-muted);
-}
+.jd-card { cursor: default; }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.ml-8 { margin-left: 8px; }
 </style>

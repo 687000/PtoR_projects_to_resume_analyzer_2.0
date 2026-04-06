@@ -2,7 +2,6 @@
 
 **Feature:** Job Description Upload and Matching
 **Page:** Resume Page
-**Last updated:** 2026-04-03
 
 ---
 
@@ -118,35 +117,40 @@ Ranked Projects:
 
 ## 4. Technical Implementation
 
-### JD Requirement Extraction
+### JD Requirement Extraction (Stage 1 — LLM, fallback: rule-based)
 
 Extracted fields per JD:
-- **Tech stack signals** — frameworks, languages, tools mentioned explicitly
-- **Collaboration signals** — team size indicators, cross-functional mentions, leadership keywords
-- **Domain signals** — industry, product type, business context
-- **Seniority signals** — years of experience, scope of ownership, title-level cues
-- **Raw requirement list** — bullet-extracted list of stated qualifications
+- **Tech stack** — specific languages, frameworks, libraries, and tools (lowercase exact terms)
+- **Seniority requirement** — structured object: `{ min_years, expected_level, ownership_signals[] }`. Evaluated against the user's profile in `data/user_profile.json` to produce a `seniority_fit` value (`meets` / `partial` / `below`) — **not** used in per-project scoring.
+- **Domain** — application domains from a fixed list: `web_app | mobile | backend | platform | middle_office | data | devops`
+- **Collaboration** — cross-functional signals (agile, stakeholder, mentoring, coordination)
 
-### Matching Logic
+### Matching Logic (Stage 2 — LLM, fallback: rule-based)
 
-Per saved project, scoring runs across dimensions:
+Per saved project, scoring runs across three dimensions only (seniority is evaluated once at the JD level, not per project):
 
 | Dimension | Weight |
 |---|---|
-| Tech stack overlap | 40% |
-| Domain relevance | 25% |
+| Tech stack overlap | 50% |
+| Domain relevance | 30% |
 | Collaboration pattern match | 20% |
-| Seniority signal alignment | 15% |
 
-Overall fit score = weighted sum. Projects sorted descending by score.
+Overall fit score = weighted sum (0–100). Projects sorted descending by score.
 
-### Tailored Bullet Generation
+The LLM path scores all projects in a single call and can de-duplicate bullets across projects. The rule-based fallback scores each project independently.
 
-For each matched project:
-- Select the most relevant resume bullets from the project's `resume_bullets[]`
-- Reorder and filter based on which JD requirements they address
-- Prepend the strongest signal keywords where naturally fitting
-- Output: 2–4 bullets per project, ranked by relevance to this specific JD
+### Bullet Selection (Stage 2)
+
+For each matched project, bullets are **selected from existing project content** — not generated:
+- `summary_bullet` is always preferred (pinned first, higher match weight)
+- Supporting `resume_bullets` are ranked by tech-keyword overlap with the JD
+- At most 1 bullet selected per project unless the project satisfies all three match dimensions
+- Auto-included based on fit score tier: ≥ 85 → 2 bullets, ≥ 65 → 1, ≥ 45 → 1, < 45 → 0
+- No duplication: if two projects surface near-identical bullets (same tech + outcome), only the higher-scoring one is included
+
+### Bullet Generation (Stage 3 — explicit user action only)
+
+New tailored bullets can be generated per project by clicking **"Generate Bullets"** in the detail view. This uses the `jd-tailored-bullets-prompt` to generate 2-3 bullets that directly address JD requirements while tracing back to project evidence. This is never triggered automatically during analyze or rematch.
 
 ### Deduplication
 
@@ -201,6 +205,5 @@ For each matched project:
 ## 6. Future Enhancements
 
 - LLM-powered extraction for nuanced requirement parsing
-- Role-aligned bullet rewriting (Vue developer vs. middle office framing)
 - Side-by-side view: JD requirements vs. project contributions
 - Export matched resume section directly to PDF or clipboard

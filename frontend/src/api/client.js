@@ -1,109 +1,60 @@
-async function request(path, options = {}) {
-  const res = await fetch(path, options)
+const BASE = '/api'
+
+async function request(method, path, body, isFormData = false) {
+  const opts = { method, headers: {} }
+  if (body && !isFormData) {
+    opts.headers['Content-Type'] = 'application/json'
+    opts.body = JSON.stringify(body)
+  } else if (body && isFormData) {
+    opts.body = body
+  }
+  const res = await fetch(BASE + path, opts)
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new Error(body.detail || `Request failed: ${res.status}`)
+    const err = await res.json().catch(() => ({ detail: res.statusText }))
+    throw new Error(err.detail || `HTTP ${res.status}`)
   }
   return res.json()
 }
 
-export function getProjects() {
-  return request('/api/projects')
+const get = (path) => request('GET', path)
+const post = (path, body) => request('POST', path, body)
+const patch = (path, body) => request('PATCH', path, body)
+const del = (path) => request('DELETE', path)
+
+export const projectsApi = {
+  list: () => get('/projects'),
+  get: (id) => get(`/projects/${id}`),
+  analyzeText: (text, url, notionUrl, context) =>
+    post('/analyze', { text, url, notion_url: notionUrl, context }),
+  analyzeFile: (files, context) => {
+    const fd = new FormData()
+    const fileList = Array.isArray(files) ? files : [files]
+    fileList.forEach(f => fd.append('files', f))
+    fd.append('context', JSON.stringify(context))
+    return request('POST', '/analyze/file', fd, true)
+  },
+  save: (source, context, analysis) =>
+    post('/projects', { source, context, analysis }),
+  update: (id, updates) => patch(`/projects/${id}`, updates),
+  delete: (id) => del(`/projects/${id}`),
 }
 
-export function getProject(id) {
-  return request(`/api/projects/${id}`)
-}
-
-export function analyzeSource(source, context) {
-  return request('/api/analyze', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ source, context }),
-  })
-}
-
-export function analyzeFile(files, context) {
-  const fd = new FormData()
-  for (const file of files) fd.append('files', file)
-  fd.append('context', JSON.stringify(context))
-  return request('/api/analyze/file', { method: 'POST', body: fd })
-}
-
-export function saveProject(analysis, rawText, sourceMetadata) {
-  return request('/api/projects', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ analysis, raw_text: rawText, source_metadata: sourceMetadata }),
-  })
-}
-
-export function patchProject(id, context, reanalyze = false, resumeBullets = null) {
-  const body = { context, reanalyze }
-  if (resumeBullets !== null) body.resume_bullets = resumeBullets
-  return request(`/api/projects/${id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
-}
-
-export function deleteProject(id) {
-  return request(`/api/projects/${id}`, { method: 'DELETE' })
-}
-
-// --- JD targets ---
-
-export function getJDTargets() {
-  return request('/api/jd-targets')
-}
-
-export function analyzeJDSource(source) {
-  return request('/api/jd/analyze', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ source }),
-  })
-}
-
-export function analyzeJDFile(file) {
-  const fd = new FormData()
-  fd.append('file', file)
-  return request('/api/jd/analyze/file', { method: 'POST', body: fd })
-}
-
-export function saveJDTarget(analysis, rawJdText, sourceMetadata) {
-  return request('/api/jd-targets', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ analysis, raw_jd_text: rawJdText, source_metadata: sourceMetadata }),
-  })
-}
-
-export function rematchJDTarget(id, projectIds = null) {
-  return request(`/api/jd-targets/${id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ project_ids: projectIds }),
-  })
-}
-
-export function saveJDBullets(id, matchedProjects) {
-  return request(`/api/jd-targets/${id}/bullets`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ matched_projects: matchedProjects }),
-  })
-}
-
-export function improveJDBullets(id, bullets) {
-  return request(`/api/jd-targets/${id}/improve-bullets`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ bullets }),
-  })
-}
-
-export function deleteJDTarget(id) {
-  return request(`/api/jd-targets/${id}`, { method: 'DELETE' })
+export const jdApi = {
+  list: () => get('/jd-targets'),
+  get: (id) => get(`/jd-targets/${id}`),
+  analyzeText: (text) => post('/jd/analyze', { text }),
+  analyzeUrl: (url) => post('/jd/analyze', { url }),
+  analyzeFile: (files) => {
+    const fd = new FormData()
+    const fileList = Array.isArray(files) ? files : [files]
+    fileList.forEach(f => fd.append('files', f))
+    return request('POST', '/jd/analyze/file', fd, true)
+  },
+  save: (jd, saveAndMatch = true) =>
+    post('/jd-targets', { jd, save_and_match: saveAndMatch }),
+  rematch: (id) => post(`/jd-targets/${id}/rematch`),
+  update: (id, updates) => patch(`/jd-targets/${id}`, updates),
+  delete: (id) => del(`/jd-targets/${id}`),
+  rewriteBullets: (jdId, bullets) =>
+    post(`/jd/${jdId}/rewrite-bullets`, { bullets }),
 }
