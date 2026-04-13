@@ -71,6 +71,7 @@ export const useResumeStore = defineStore('resume', () => {
       const saved = await jdApi.save(u.result.jd, true)
       list.value.unshift(saved)
       resetUpload()
+      upload.value.open = true
       return saved
     } finally {
       u.savingAndMatching = false
